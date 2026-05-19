@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Card } from "@/components/ui/Card";
+import { printElementsAsImages } from "@/lib/printAsImage";
 
 type Station = {
   id: number;
@@ -64,6 +65,27 @@ export default function AdminQRPage() {
     };
   }, []);
 
+  const stackRef = useRef<HTMLDivElement | null>(null);
+  const [printing, setPrinting] = useState(false);
+
+  async function handlePrint() {
+    if (!stackRef.current) return;
+    const cards = Array.from(
+      stackRef.current.querySelectorAll<HTMLElement>(".qr-print-card"),
+    );
+    if (cards.length === 0) return;
+    setPrinting(true);
+    try {
+      await printElementsAsImages(cards, {
+        pageSize: "A5",
+        widthMm: 148,
+        heightMm: 210,
+      });
+    } finally {
+      setPrinting(false);
+    }
+  }
+
   if (!stations) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -89,19 +111,23 @@ export default function AdminQRPage() {
           </p>
         </div>
         <button
-          onClick={() => window.print()}
-          className="rounded-2xl bg-[var(--color-accent)] px-5 py-3 text-sm font-medium text-[var(--color-bg-deep)] hover:brightness-110 print:hidden"
+          onClick={handlePrint}
+          disabled={printing}
+          className="rounded-2xl bg-[var(--color-accent)] px-5 py-3 text-sm font-medium text-[var(--color-bg-deep)] hover:brightness-110 disabled:opacity-60"
         >
-          Tisknout
+          {printing ? "Připravuji…" : "Tisknout"}
         </button>
       </header>
 
-      <div className="qr-print-stack grid grid-cols-1 gap-6 print:gap-0 sm:grid-cols-2">
+      <div
+        ref={stackRef}
+        className="qr-print-stack grid grid-cols-1 gap-6 sm:grid-cols-2"
+      >
         {stations.map((s) => (
           <Card
             key={s.id}
             variant="strong"
-            className="qr-print-card overflow-hidden p-8 print:rounded-none print:shadow-none"
+            className="qr-print-card overflow-hidden p-8"
           >
             <div className="flex items-center justify-between">
               <div>
@@ -135,21 +161,17 @@ export default function AdminQRPage() {
                   Naskenuj QR · zadej kód · odpověz.
                 </div>
               </div>
-              <div className="rounded-2xl bg-white p-3 print:rounded-none">
+              <div className="rounded-2xl bg-white p-3">
                 <img
                   src={`/api/admin/qr/${s.id}`}
                   alt={`QR ${s.name}`}
-                  className="h-44 w-44 print:h-[55mm] print:w-[55mm]"
+                  className="h-44 w-44"
                 />
               </div>
-            </div>
-            <div className="mt-6 hidden text-center text-[10px] uppercase tracking-[0.3em] text-[var(--color-text-faint)] print:block">
-              Party byADF · {origin.replace(/^https?:\/\//, "")}
             </div>
           </Card>
         ))}
       </div>
-
     </div>
   );
 }

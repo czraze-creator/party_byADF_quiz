@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { printElementsAsImages } from "@/lib/printAsImage";
 
 export default function AdminInviteQRPage() {
   const router = useRouter();
@@ -40,6 +41,23 @@ export default function AdminInviteQRPage() {
     };
   }, []);
 
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const [printing, setPrinting] = useState(false);
+
+  async function handlePrint() {
+    if (!cardRef.current) return;
+    setPrinting(true);
+    try {
+      await printElementsAsImages([cardRef.current], {
+        pageSize: "148mm 105mm",
+        widthMm: 148,
+        heightMm: 105,
+      });
+    } finally {
+      setPrinting(false);
+    }
+  }
+
   if (authed !== true) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -65,16 +83,17 @@ export default function AdminInviteQRPage() {
           </p>
         </div>
         <button
-          onClick={() => window.print()}
-          className="rounded-2xl bg-[var(--color-accent)] px-5 py-3 text-sm font-medium text-[var(--color-bg-deep)] hover:brightness-110"
+          onClick={handlePrint}
+          disabled={printing}
+          className="rounded-2xl bg-[var(--color-accent)] px-5 py-3 text-sm font-medium text-[var(--color-bg-deep)] hover:brightness-110 disabled:opacity-60"
         >
-          Tisknout
+          {printing ? "Připravuji…" : "Tisknout"}
         </button>
       </header>
 
       {/* The printable card. Sized for A6 landscape (148×105 mm). */}
       <div className="mx-auto print:m-0">
-        <div className="invite-card invite-print-card">
+        <div ref={cardRef} className="invite-card invite-print-card">
           <div className="invite-bg" aria-hidden="true" />
           <div className="invite-glow invite-glow-cyan" aria-hidden="true" />
           <div className="invite-glow invite-glow-gold" aria-hidden="true" />

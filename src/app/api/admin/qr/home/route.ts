@@ -9,13 +9,13 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const origin = `${url.protocol}//${url.host}`;
   const target = `${origin}/?utm_source=qr&utm_medium=invite`;
-  const svg = await QRCode.toString(target, {
-    type: "svg",
+  const png = await QRCode.toBuffer(target, {
     errorCorrectionLevel: "H",
     margin: 1,
     color: { dark: "#0A2540", light: "#FFFFFF" },
+    width: 800,
   });
-  return new NextResponse(svg, {
-    headers: { "content-type": "image/svg+xml" },
+  return new NextResponse(new Uint8Array(png), {
+    headers: { "content-type": "image/png", "cache-control": "private, max-age=300" },
   });
 }

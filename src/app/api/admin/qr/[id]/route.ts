@@ -21,16 +21,20 @@ export async function GET(
   // station code, so a scan from the printed sheet auto-unlocks — no manual
   // typing. The code stays visible on the same sheet so a guest with a
   // damaged QR can fall back to typing it.
+  //
+  // Returned as PNG (not SVG) because the admin print flow rasterises the
+  // entire card with html2canvas, and html2canvas does not reliably render
+  // inline SVG glyphs. PNG inputs come out crisp.
   const url = new URL(req.url);
   const origin = `${url.protocol}//${url.host}`;
   const target = `${origin}/play/station/${stationId}/unlock?code=${encodeURIComponent(station.code)}&utm_source=qr&utm_medium=station_${stationId}`;
-  const svg = await QRCode.toString(target, {
-    type: "svg",
+  const png = await QRCode.toBuffer(target, {
     errorCorrectionLevel: "Q",
     margin: 1,
     color: { dark: "#0A2540", light: "#FFFFFF" },
+    width: 800,
   });
-  return new NextResponse(svg, {
-    headers: { "content-type": "image/svg+xml" },
+  return new NextResponse(new Uint8Array(png), {
+    headers: { "content-type": "image/png", "cache-control": "private, max-age=300" },
   });
 }
