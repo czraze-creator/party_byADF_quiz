@@ -3,15 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Card } from "@/components/ui/Card";
 import { printImageUrls } from "@/lib/printAsImage";
 
-type Station = {
-  id: number;
-  name: string;
-  emoji: string;
-  code: string;
-};
+type Station = { id: number; name: string };
 
 export default function AdminQRPage() {
   const router = useRouter();
@@ -28,14 +22,10 @@ export default function AdminQRPage() {
       const data = await res.json();
       if (!cancelled) {
         setStations(
-          data.stationStats.map(
-            (s: { id: number; name: string; emoji: string; code: string }) => ({
-              id: s.id,
-              name: s.name,
-              emoji: s.emoji,
-              code: s.code,
-            }),
-          ),
+          data.stationStats.map((s: { id: number; name: string }) => ({
+            id: s.id,
+            name: s.name,
+          })),
         );
       }
     }
@@ -45,30 +35,8 @@ export default function AdminQRPage() {
     };
   }, [router]);
 
-  // Mark <body> while this route is mounted so the print rules in
-  // globals.css scope themselves to just the QR cards. Cleaned up on
-  // unmount so other routes print normally.
-  useEffect(() => {
-    document.body.classList.add("print-station-cards");
-    // Inject the @page size declaration directly into <head>. Named pages
-    // in globals.css turned out unreliable across print engines, so each
-    // route now owns its own @page rule and removes it on unmount.
-    const style = document.createElement("style");
-    style.id = "page-station-style";
-    style.textContent = "@page { size: 148mm 105mm; margin: 0; }";
-    document.head.appendChild(style);
-    return () => {
-      document.body.classList.remove("print-station-cards");
-      style.remove();
-    };
-  }, []);
-
   const [printing, setPrinting] = useState(false);
 
-  // Print uses static screenshot PNGs in /public/print/ (one per station)
-  // rather than rasterising the live DOM. Dynamic rendering kept drifting
-  // from the approved design across printers, so the source of truth for
-  // the printed sheet is now a fixed image checked into the repo.
   async function handlePrint() {
     if (!stations || stations.length === 0) return;
     setPrinting(true);
@@ -93,7 +61,7 @@ export default function AdminQRPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-6 py-10">
+    <div className="mx-auto w-full max-w-5xl px-6 py-10">
       <header className="mb-8 flex items-end justify-between">
         <div>
           <span className="text-xs uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
@@ -103,9 +71,8 @@ export default function AdminQRPage() {
             Tištěné listy
           </h1>
           <p className="mt-3 max-w-xl text-[var(--color-text-muted)]">
-            Pro každé stanoviště jeden A5 list — vytiskni v barvě, lamiňuj a
-            postav na stanoviště. QR míří na hlavní stránku hry; kód
-            stanoviště je vytištěný velkým fontem.
+            Pro každé stanoviště jeden A6 list (148×105 mm) — vytiskni v
+            barvě, lamiňuj a postav na stanoviště.
           </p>
         </div>
         <button
@@ -117,55 +84,21 @@ export default function AdminQRPage() {
         </button>
       </header>
 
-      <div className="qr-print-stack grid grid-cols-1 gap-6 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         {stations.map((s) => (
-          <Card
+          <div
             key={s.id}
-            variant="strong"
-            className="qr-print-card overflow-hidden p-8"
-            style={{ aspectRatio: "148 / 105" }}
+            className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-                  Stanoviště {String(s.id).padStart(2, "0")}
-                </div>
-                <div className="mt-2 flex items-center gap-3">
-                  <span className="text-3xl">{s.emoji}</span>
-                  <span className="text-2xl font-medium tracking-tight text-[var(--color-text)]">
-                    {s.name}
-                  </span>
-                </div>
-              </div>
-              <Image
-                src="/brand/logo-adf-negativ.png"
-                alt="ADF"
-                width={180}
-                height={60}
-                className="h-12 w-auto rounded-lg"
-              />
-            </div>
-            <div className="mt-6 grid grid-cols-[1fr_auto] gap-6 items-center">
-              <div>
-                <div className="text-xs uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-                  Tvůj kód
-                </div>
-                <div className="font-mono text-display mt-2 text-6xl font-medium tracking-tight text-[var(--color-accent)]">
-                  {s.code}
-                </div>
-                <div className="mt-4 text-sm text-[var(--color-text-muted)]">
-                  Naskenuj QR · zadej kód · odpověz.
-                </div>
-              </div>
-              <div className="rounded-2xl bg-white p-3">
-                <img
-                  src={`/api/admin/qr/${s.id}`}
-                  alt={`QR ${s.name}`}
-                  className="h-44 w-44"
-                />
-              </div>
-            </div>
-          </Card>
+            <Image
+              src={`/print/station-${s.id}.png`}
+              alt={`Stanoviště ${s.id} — ${s.name}`}
+              width={1052}
+              height={734}
+              className="h-auto w-full"
+              priority={s.id === 1}
+            />
+          </div>
         ))}
       </div>
     </div>
