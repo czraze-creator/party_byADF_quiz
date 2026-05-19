@@ -76,11 +76,12 @@ QR míří na hlavní URL hry (`/`). Kód stanoviště je vytištěný jako text
 
 ## Bezpečnost před spuštěním
 
-- [ ] `ADMIN_PASSWORD` změněno z default.
-- [x] Supabase RLS politiky nastavené (`participants` + `progress`).
-- [ ] `robots.txt` zakazuje indexaci `/admin` a `/api`.
+- [x] `ADMIN_PASSWORD` změněno z default (Vercel Production env, 2026-05-19).
+- [x] Supabase RLS politiky nastavené (`participants` + `progress` + `rate_limits`).
+- [x] `robots.txt` zakazuje indexaci `/admin` a `/api` (`public/robots.txt`).
+- [x] Rate limiting na `POST /api/participants` — 3/h/IP, table `rate_limits`. Migrace: `docs/SUPABASE_MIGRATION_002_RATE_LIMITS.sql` (spuštěno 2026-05-19).
+- [ ] Cloudflare Turnstile na `/api/participants` (CAPTCHA navíc proti botům, volitelné).
 - [ ] Privacy policy link funguje (TODO — text dodá ADF).
-- [ ] Rate limiting (TODO — přidat před eventem).
 - [ ] Sentry / monitoring nastaveno (volitelné).
 
 ## V den eventu
