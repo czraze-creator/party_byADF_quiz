@@ -6,7 +6,7 @@ odpovídají na otázky, po splnění jsou zařazeni do slosování.
 
 ## Status
 
-🟢 **MVP hotové**, čeká se na review a brand-guide verify.
+🟢 **MVP hotové + Supabase**, deploy na Vercel rozpracovaný (2026-05-19).
 
 **Co funguje end-to-end:**
 
@@ -15,13 +15,13 @@ odpovídají na otázky, po splnění jsou zařazeni do slosování.
 - Per-user session cookie (httpOnly)
 - Admin: login, live dashboard, CSV export, QR generátor pro tisk, slosování
 - PWA manifest + ikony
-- Lokální JSON store pro dev (bez závislosti na DB)
+- **Supabase store** (PostgreSQL) — viz `docs/SUPABASE_SCHEMA.sql`
 
 **Co je TODO před produkcí:**
 
 - [ ] Verify ADF brand colors (aktuálně placeholder z paměti)
 - [ ] Doplnit privacy policy text
-- [ ] Migrace lokálního JSON store na Supabase (kvůli Vercel ephemeral FS)
+- [ ] Vercel deploy + custom doména `partybyadf.byvychodil.com`
 - [ ] Rate limiting na API endpointech
 - [ ] Cloudflare Turnstile na identita formuláři
 - [ ] Tisk QR kódů + dry-run s pár hosty z ADF
@@ -30,14 +30,15 @@ odpovídají na otázky, po splnění jsou zařazeni do slosování.
 
 ```bash
 cp .env.example .env.local
+# Doplň Supabase credentials (URL + anon + service role)
 npm install
 npm run dev
-# http://localhost:3000
+# http://localhost:3000  (nebo PORT=3210 npm run dev)
 ```
 
 **Admin:** `http://localhost:3000/admin` — heslo z `.env.local` (default `adf2026`).
 
-**Reset dat:** `rm -rf .data/`
+**Reset dat:** v Supabase SQL editoru `truncate table progress; truncate table participants cascade;`
 
 ## Struktura
 
