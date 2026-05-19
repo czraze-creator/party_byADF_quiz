@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/Button";
@@ -19,6 +19,25 @@ function safeNext(raw: string | null): string {
 }
 
 export default function IdentitaPage() {
+  // useSearchParams forces dynamic rendering of any component that calls it.
+  // Wrap the inner form in <Suspense> so the route can still be statically
+  // prerendered up to that boundary (Next.js build requirement).
+  return (
+    <Suspense fallback={<IdentitaFallback />}>
+      <IdentitaForm />
+    </Suspense>
+  );
+}
+
+function IdentitaFallback() {
+  return (
+    <div className="flex flex-1 items-center justify-center">
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--color-accent)] border-t-transparent" />
+    </div>
+  );
+}
+
+function IdentitaForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = safeNext(searchParams.get("next"));
