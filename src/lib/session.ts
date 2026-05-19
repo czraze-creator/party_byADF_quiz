@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { findParticipantBySession } from "./db/store";
 
 const COOKIE_NAME = "quiz_session";
-const MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+const MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
 export async function setSessionCookie(token: string): Promise<void> {
   const store = await cookies();

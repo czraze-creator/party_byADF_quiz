@@ -17,10 +17,12 @@ export async function GET(
   if (!station) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
-  // QR encodes the public game URL (homepage). The station code is on the printed sheet.
+  // QR deep-links straight to the station's unlock screen. Guests still type
+  // the code from the printed sheet — that's the "you're physically here"
+  // second factor.
   const url = new URL(req.url);
   const origin = `${url.protocol}//${url.host}`;
-  const target = `${origin}/?utm_source=qr&utm_medium=station_${stationId}`;
+  const target = `${origin}/play/station/${stationId}/unlock?utm_source=qr&utm_medium=station_${stationId}`;
   const svg = await QRCode.toString(target, {
     type: "svg",
     errorCorrectionLevel: "Q",

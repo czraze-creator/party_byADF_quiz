@@ -28,7 +28,9 @@ export default function UnlockPage({ params }: Props) {
           fetch("/api/me"),
         ]);
         if (mRes.status === 401) {
-          router.replace("/play/identita");
+          // Preserve the deep-link target so registration returns the guest here.
+          const next = `/play/station/${stationId}/unlock`;
+          router.replace(`/play/identita?next=${encodeURIComponent(next)}`);
           return;
         }
         const sData = (await sRes.json()) as { stations: PublicStation[] };

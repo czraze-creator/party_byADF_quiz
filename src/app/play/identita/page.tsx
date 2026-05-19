@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -10,8 +10,19 @@ import { fadeUp, itemTransition, stagger } from "@/lib/motion";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Only allow next= redirects to in-app /play/* paths — guards against open
+// redirect from the QR query string.
+function safeNext(raw: string | null): string {
+  if (!raw) return "/play/journey";
+  if (!raw.startsWith("/play/")) return "/play/journey";
+  return raw;
+}
+
 export default function IdentitaPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = safeNext(searchParams.get("next"));
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -19,6 +30,7 @@ export default function IdentitaPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [resumed, setResumed] = useState<{ name: string } | null>(null);
 
   function validate() {
     const next: Record<string, string> = {};
@@ -48,7 +60,17 @@ export default function IdentitaPage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? "request_failed");
       }
-      router.push("/play/journey");
+      const data = (await res.json()) as {
+        name: string;
+        resumed: boolean;
+      };
+      if (data.resumed) {
+        // Show a brief welcome-back message before routing onwards.
+        setResumed({ name: data.name });
+        setTimeout(() => router.push(nextPath), 1100);
+      } else {
+        router.push(nextPath);
+      }
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : "Něco se nepovedlo, zkus znovu.",
@@ -56,6 +78,28 @@ export default function IdentitaPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (resumed) {
+    const firstName = resumed.name.split(" ")[0];
+    return (
+      <div className="flex flex-1 items-center justify-center px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 12, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4 }}
+          className="text-center"
+        >
+          <div className="text-5xl">👋</div>
+          <h2 className="text-display mt-5 text-3xl font-medium">
+            Vítej zpátky, {firstName}.
+          </h2>
+          <p className="mt-3 text-[var(--color-text-muted)]">
+            Pokračujeme tam, kde jsi skončil.
+          </p>
+        </motion.div>
+      </div>
+    );
   }
 
   return (
