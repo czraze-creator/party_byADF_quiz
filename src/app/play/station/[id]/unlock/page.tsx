@@ -1,11 +1,12 @@
 "use client";
 
-import { Suspense, use, useEffect, useRef, useState } from "react";
+import { Suspense, use, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/Button";
 import { CodeInput } from "@/components/ui/CodeInput";
 import { BackLink } from "@/components/ui/BackLink";
+import { QrScannerDialog } from "@/components/QrScannerDialog";
 import type { PublicStation } from "@/lib/types";
 
 type Props = { params: Promise<{ id: string }> };
@@ -36,6 +37,7 @@ function UnlockInner({ stationId }: { stationId: number }) {
   const [code, setCode] = useState(initialCode);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const autoSubmitted = useRef(false);
 
   // Single combined effect: do all auth/progress/station checks BEFORE
@@ -52,7 +54,12 @@ function UnlockInner({ stationId }: { stationId: number }) {
         ]);
         if (cancelled) return;
         if (mRes.status === 401) {
-          const next = `/play/station/${stationId}/unlock`;
+          // Preserve the code from the QR so the auto-unlock still fires
+          // after the guest finishes registration.
+          const codeQS = initialCode
+            ? `?code=${encodeURIComponent(initialCode)}`
+            : "";
+          const next = `/play/station/${stationId}/unlock${codeQS}`;
           router.replace(`/play/identita?next=${encodeURIComponent(next)}`);
           return;
         }
@@ -119,6 +126,47 @@ function UnlockInner({ stationId }: { stationId: number }) {
     submit(initialCode);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [station]);
+
+  // Handle a successful in-page QR scan. The scanned text can be either
+  // a full deep-link URL (printed station QR) or just the raw code.
+  const handleScan = useCallback(
+    (raw: string) => {
+      let parsedCode: string | null = null;
+      let parsedStationId: number | null = null;
+      try {
+        const u = new URL(raw, window.location.origin);
+        // /play/station/<id>/unlock
+        const m = u.pathname.match(/\/play\/station\/(\d+)\/unlock/);
+        if (m) parsedStationId = Number(m[1]);
+        parsedCode = u.searchParams.get("code");
+      } catch {
+        /* not a URL — treat as raw code */
+      }
+      if (!parsedCode) {
+        // Raw code shape — short alpha string, allow it directly
+        const trimmed = raw.trim();
+        if (/^[A-Za-z0-9]{2,24}$/.test(trimmed)) {
+          parsedCode = trimmed;
+        }
+      }
+      setScannerOpen(false);
+      if (!parsedCode) {
+        setError("Tenhle QR nepatří ke hře. Zkus to znovu.");
+        return;
+      }
+      // If the scan was for a different station, route there with the code.
+      if (parsedStationId && parsedStationId !== stationId) {
+        router.replace(
+          `/play/station/${parsedStationId}/unlock?code=${encodeURIComponent(parsedCode)}`,
+        );
+        return;
+      }
+      setCode(parsedCode.toUpperCase());
+      submit(parsedCode);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [stationId, router],
+  );
 
   if (!station) {
     return <Spinner />;
@@ -197,6 +245,47 @@ function UnlockInner({ stationId }: { stationId: number }) {
           )}
         </motion.div>
 
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.15 }}
+          className="mt-6 flex items-center gap-3"
+        >
+          <div className="h-px flex-1 bg-white/[0.08]" />
+          <span className="text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-faint)]">
+            Nebo
+          </span>
+          <div className="h-px flex-1 bg-white/[0.08]" />
+        </motion.div>
+
+        <motion.button
+          type="button"
+          onClick={() => {
+            setError(null);
+            setScannerOpen(true);
+          }}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          className="mt-4 flex items-center justify-center gap-2.5 rounded-2xl border border-white/[0.1] bg-white/[0.03] px-5 py-4 text-sm font-medium text-[var(--color-text)] hover:bg-white/[0.06]"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-[var(--color-accent)]"
+          >
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+            <circle cx="12" cy="13" r="4" />
+          </svg>
+          Vyfotit QR
+        </motion.button>
+
         <div className="mt-auto pt-10">
           <Button
             fullWidth
@@ -208,6 +297,12 @@ function UnlockInner({ stationId }: { stationId: number }) {
           </Button>
         </div>
       </div>
+
+      <QrScannerDialog
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onDetect={handleScan}
+      />
     </div>
   );
 }
