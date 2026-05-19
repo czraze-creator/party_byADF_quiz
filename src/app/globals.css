@@ -162,41 +162,47 @@
     -webkit-print-color-adjust: exact;
   }
 
-  /* ───── Station tiles (/admin/qr) — one A5 portrait per card ───── */
+  /* ───── Station tiles (/admin/qr) — one A5 portrait per card ─────
+     Strategy: flatten the entire layout chain (admin layout wrapper +
+     page wrapper + grid stack) into a single block flow so cards just
+     stack and break per page. Hide nav/buttons unconditionally so we
+     don't depend on knowing the DOM structure. */
 
   body.print-station-cards {
-    width: 148mm; /* A5 width */
+    display: block !important;
+    width: 148mm !important;
+    min-height: 0 !important;
+  }
+  body.print-station-cards > :not(main) {
+    display: none !important;
   }
   body.print-station-cards header,
   body.print-station-cards button {
     display: none !important;
   }
-  body.print-station-cards .qr-print-screen-only,
-  body.print-station-cards main > *:not(.qr-print-route) {
-    display: none !important;
-  }
-  body.print-station-cards * {
-    visibility: hidden;
-  }
-  body.print-station-cards .qr-print-card,
-  body.print-station-cards .qr-print-card * {
-    visibility: visible !important;
+  body.print-station-cards main,
+  body.print-station-cards main > div,
+  body.print-station-cards main > div > div,
+  body.print-station-cards main > div > div > div:not(.qr-print-card):not(.qr-print-stack) {
+    display: block !important;
+    flex: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
   body.print-station-cards .qr-print-stack {
-    position: absolute !important;
-    left: 0;
-    top: 0;
-    width: 100%;
+    display: block !important;
     margin: 0 !important;
     padding: 0 !important;
-    display: block !important;
-    grid-template-columns: none !important;
     gap: 0 !important;
+    grid-template-columns: none !important;
+    width: 100% !important;
   }
   body.print-station-cards .qr-print-card {
     display: block !important;
-    width: 100% !important;
-    height: 190mm; /* close to full A5 minus 10mm margin top+bottom */
+    width: 148mm !important;
+    height: 210mm !important; /* full A5 portrait — @page margin is 0 */
     box-sizing: border-box;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
@@ -210,7 +216,7 @@
     border: none !important;
     border-radius: 0 !important;
     box-shadow: none !important;
-    padding: 14mm !important;
+    padding: 16mm 14mm !important;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
@@ -225,28 +231,40 @@
     -webkit-print-color-adjust: exact;
   }
 
-  /* ───── Invite card (/admin/qr/invite) — single A6 landscape ───── */
+  /* ───── Invite card (/admin/qr/invite) — single A6 landscape ─────
+     Same flatten approach as the station tiles. Body is locked to
+     148×105mm with overflow:hidden so the second page never appears
+     from stray sub-pixel overflow. */
 
   body.print-invite-card {
-    width: 148mm;
-    height: 105mm;
+    display: block !important;
+    width: 148mm !important;
+    height: 105mm !important;
+    min-height: 0 !important; /* override Tailwind min-h-dvh on body */
     overflow: hidden !important;
+  }
+  body.print-invite-card > :not(main) {
+    display: none !important;
   }
   body.print-invite-card header,
   body.print-invite-card button {
     display: none !important;
   }
-  body.print-invite-card * {
-    visibility: hidden;
-  }
-  body.print-invite-card .invite-print-card,
-  body.print-invite-card .invite-print-card * {
-    visibility: visible !important;
+  body.print-invite-card main,
+  body.print-invite-card main > div,
+  body.print-invite-card main > div > div,
+  body.print-invite-card main > div > div > div:not(.invite-print-card) {
+    display: block !important;
+    flex: none !important;
+    width: 100% !important;
+    height: auto !important;
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
   body.print-invite-card .invite-print-card {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
+    display: block !important;
+    margin: 0 !important;
     width: 148mm !important;
     height: 105mm !important;
     border-radius: 0 !important;
@@ -254,8 +272,6 @@
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
-  /* Force the layered gradient backgrounds + soft glows to actually
-     ink — without this, Safari/Chrome print stripped them entirely. */
   body.print-invite-card .invite-bg,
   body.print-invite-card .invite-glow {
     print-color-adjust: exact !important;

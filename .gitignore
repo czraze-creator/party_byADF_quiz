@@ -42,3 +42,6 @@ next-env.d.ts
 .data/
 *.local
 print-debug/
+scripts/print-test.mjs
+scripts/print-debug*.mjs
+scripts/inspect-stations.mjs

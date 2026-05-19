@@ -56,7 +56,7 @@ export default function AdminQRPage() {
     // route now owns its own @page rule and removes it on unmount.
     const style = document.createElement("style");
     style.id = "page-station-style";
-    style.textContent = "@page { size: A5; margin: 10mm; }";
+    style.textContent = "@page { size: A5; margin: 0; }";
     document.head.appendChild(style);
     return () => {
       document.body.classList.remove("print-station-cards");
