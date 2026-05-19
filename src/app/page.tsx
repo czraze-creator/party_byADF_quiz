@@ -43,25 +43,39 @@ export default function LandingPage() {
         variants={stagger}
         className="flex w-full max-w-md flex-col items-center text-center"
       >
-        <motion.h1
+        <motion.div
           variants={fadeUp}
           transition={{ ...itemTransition, delay: 0.1 }}
-          className="text-display text-7xl font-medium text-[var(--color-text)] sm:text-8xl"
+          className="relative"
         >
-          10
-          <span className="text-[var(--color-accent)]"> let</span>.
-        </motion.h1>
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 -z-10 blur-3xl opacity-60"
+            style={{
+              background:
+                "radial-gradient(closest-side, rgba(212,165,80,0.35), transparent 70%)",
+            }}
+          />
+          <Image
+            src="/brand/badge-10-years-celebration.png"
+            alt="10 Years Celebration"
+            width={600}
+            height={637}
+            priority
+            className="h-auto w-[260px] sm:w-[300px] drop-shadow-[0_8px_40px_rgba(212,165,80,0.25)]"
+          />
+        </motion.div>
         <motion.h2
           variants={fadeUp}
-          transition={{ ...itemTransition, delay: 0.15 }}
-          className="text-display mt-3 text-3xl font-medium text-[var(--color-text)] sm:text-4xl"
+          transition={{ ...itemTransition, delay: 0.18 }}
+          className="text-display mt-2 text-3xl font-medium text-[var(--color-text)] sm:text-4xl"
         >
           Jedna výzva.
         </motion.h2>
         <motion.p
           variants={fadeUp}
-          transition={{ ...itemTransition, delay: 0.25 }}
-          className="mt-6 max-w-xs text-balance text-base text-[var(--color-text-muted)]"
+          transition={{ ...itemTransition, delay: 0.28 }}
+          className="mt-5 max-w-xs text-balance text-base text-[var(--color-text-muted)]"
         >
           Projdi čtyři stanoviště, odpověz správně a zařadíme tě
           do slosování o ceny.
