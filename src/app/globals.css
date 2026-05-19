@@ -9,9 +9,12 @@
   --color-border: rgba(255, 255, 255, 0.08);
   --color-border-strong: rgba(255, 255, 255, 0.16);
 
-  --color-accent: #00b8d4;
-  --color-accent-soft: rgba(0, 184, 212, 0.18);
-  --color-accent-glow: rgba(0, 184, 212, 0.42);
+  /* byADF brand teal — pulled from the official ADF logo (#2595ac).
+     Replaces the brighter ad-hoc cyan we used in early scaffolding so
+     printed cards match the brand visual identity. */
+  --color-accent: #2595ac;
+  --color-accent-soft: rgba(37, 149, 172, 0.20);
+  --color-accent-glow: rgba(37, 149, 172, 0.45);
 
   --color-success: #14e59a;
   --color-success-soft: rgba(20, 229, 154, 0.18);
