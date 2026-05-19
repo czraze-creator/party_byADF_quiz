@@ -14,14 +14,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Party byADF — Quiz",
+  title: "Party byADF",
   description: "Hra na letní party byADF. 10 let. Jedna výzva.",
-  applicationName: "Party byADF Quiz",
+  applicationName: "Party byADF",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "byADF Quiz",
+    title: "Party byADF",
     startupImage: ["/icons/icon-512.png"],
   },
   icons: {
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   formatDetection: { telephone: false },
   openGraph: {
     title: "Party byADF — 10 let. Jedna výzva.",
-    description: "Interaktivní quiz pro letní party byADF 2026.",
+    description: "Interaktivní hra pro letní party byADF 2026.",
     type: "website",
     locale: "cs_CZ",
   },

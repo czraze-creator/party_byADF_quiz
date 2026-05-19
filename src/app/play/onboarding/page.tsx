@@ -93,7 +93,7 @@ export default function OnboardingPage() {
           ))}
         </div>
         <Button fullWidth onClick={next}>
-          {step < STEPS.length - 1 ? "Dál" : "Začít quiz"}
+          {step < STEPS.length - 1 ? "Dál" : "Pojď do hry"}
         </Button>
       </div>
     </div>

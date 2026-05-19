@@ -44,10 +44,10 @@ export default function DonePage() {
 
   async function share() {
     const url = typeof window !== "undefined" ? window.location.origin : "";
-    const title = "Party byADF — Quiz";
+    const title = "Party byADF";
     const text = eligible
-      ? "Právě jsem dokončil quiz na party byADF a jsem v slosování. Pojď si zahrát."
-      : "Hraju quiz na party byADF. Pojď taky.";
+      ? "Právě jsem dohrál hru na party byADF a jsem v slosování. Pojď si taky zahrát."
+      : "Hraju na party byADF — pojď taky.";
     if (typeof navigator !== "undefined" && (navigator as Navigator & { share?: (data: { title: string; text: string; url: string }) => Promise<void> }).share) {
       try {
         await (navigator as Navigator & { share: (data: { title: string; text: string; url: string }) => Promise<void> }).share({ title, text, url });
