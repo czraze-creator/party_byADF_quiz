@@ -25,11 +25,18 @@ export default function AdminInviteQRPage() {
     };
   }, [router]);
 
-  // Scope the invite-card print rules in globals.css to just this route.
+  // Scope the invite-card print rules in globals.css to just this route,
+  // and inject the @page size declaration directly into <head> so the
+  // printer asks for an A6-landscape sheet, not the default A4.
   useEffect(() => {
     document.body.classList.add("print-invite-card");
+    const style = document.createElement("style");
+    style.id = "page-invite-style";
+    style.textContent = "@page { size: 148mm 105mm; margin: 0; }";
+    document.head.appendChild(style);
     return () => {
       document.body.classList.remove("print-invite-card");
+      style.remove();
     };
   }, []);
 
@@ -126,13 +133,19 @@ export default function AdminInviteQRPage() {
           background: #051427;
           color: #f4f6fa;
           box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.6);
+          print-color-adjust: exact;
+          -webkit-print-color-adjust: exact;
         }
         .invite-bg {
           position: absolute;
           inset: 0;
+          /* Saturated stops so the diagonal purple → teal → navy
+             gradient is visible after print conversion. */
           background:
-            radial-gradient(120% 80% at 100% 50%, #0a4a5e 0%, #051427 65%),
-            linear-gradient(135deg, #1a0f3a 0%, #051427 55%);
+            radial-gradient(130% 95% at 105% 55%, #0e7290 0%, #08344a 45%, #051427 75%),
+            linear-gradient(135deg, #2a1565 0%, #14093c 30%, #051427 65%);
+          print-color-adjust: exact;
+          -webkit-print-color-adjust: exact;
         }
         .invite-glow {
           position: absolute;

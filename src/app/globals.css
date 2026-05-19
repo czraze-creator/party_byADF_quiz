@@ -156,11 +156,27 @@
   html,
   body {
     background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 
-  /* Station-card tiles (/admin/qr) — one A5 sheet per card. */
+  /* ───── Station tiles (/admin/qr) — one A5 portrait per card ───── */
+
+  body.print-station-cards {
+    width: 148mm; /* A5 width */
+  }
+  body.print-station-cards header,
+  body.print-station-cards button {
+    display: none !important;
+  }
+  body.print-station-cards .qr-print-screen-only,
+  body.print-station-cards main > *:not(.qr-print-route) {
+    display: none !important;
+  }
   body.print-station-cards * {
-    visibility: hidden !important;
+    visibility: hidden;
   }
   body.print-station-cards .qr-print-card,
   body.print-station-cards .qr-print-card * {
@@ -170,7 +186,7 @@
     position: absolute !important;
     left: 0;
     top: 0;
-    right: 0;
+    width: 100%;
     margin: 0 !important;
     padding: 0 !important;
     display: block !important;
@@ -180,23 +196,21 @@
   body.print-station-cards .qr-print-card {
     display: block !important;
     width: 100% !important;
+    height: 190mm; /* close to full A5 minus 10mm margin top+bottom */
+    box-sizing: border-box;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     page-break-after: always !important;
     break-after: page !important;
     margin: 0 !important;
-    /* Web look on paper: dark teal bg, accent code, light text.
-       The glass-strong backdrop-filter doesn't print, so we restate
-       the colours explicitly here. */
     background:
-      radial-gradient(120% 80% at 100% 0%, #0a4a5e 0%, #051427 65%),
-      linear-gradient(135deg, #1a0f3a 0%, #051427 60%) !important;
+      radial-gradient(110% 90% at 100% 0%, #0e5e76 0%, #051427 68%),
+      linear-gradient(140deg, #20104a 0%, #051427 55%) !important;
     color: #f4f6fa !important;
     border: none !important;
     border-radius: 0 !important;
     box-shadow: none !important;
-    padding: 12mm !important;
-    min-height: 165mm;
+    padding: 14mm !important;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
@@ -204,16 +218,26 @@
     page-break-after: auto !important;
     break-after: auto !important;
   }
-  /* Ensure the white QR tile stays white and crisp on the dark card. */
-  body.print-station-cards .qr-print-card .rounded-2xl.bg-white {
+  body.print-station-cards .qr-print-card .rounded-2xl.bg-white,
+  body.print-station-cards .qr-print-card .rounded-2xl {
     background: #ffffff !important;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
 
-  /* Invite card (/admin/qr/invite) — single A6 landscape card. */
+  /* ───── Invite card (/admin/qr/invite) — single A6 landscape ───── */
+
+  body.print-invite-card {
+    width: 148mm;
+    height: 105mm;
+    overflow: hidden !important;
+  }
+  body.print-invite-card header,
+  body.print-invite-card button {
+    display: none !important;
+  }
   body.print-invite-card * {
-    visibility: hidden !important;
+    visibility: hidden;
   }
   body.print-invite-card .invite-print-card,
   body.print-invite-card .invite-print-card * {
@@ -221,7 +245,8 @@
   }
   body.print-invite-card .invite-print-card {
     position: fixed !important;
-    inset: 0 !important;
+    top: 0 !important;
+    left: 0 !important;
     width: 148mm !important;
     height: 105mm !important;
     border-radius: 0 !important;
@@ -229,30 +254,16 @@
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
-
-  /* Page geometry: scope @page so each route prints at the right size. */
-  body.print-invite-card {
-    /* CSS @page can't be nested under selectors; we set this via the
-       inline @page below, which falls through because only one of
-       print-* classes will be on body at a time. */
+  /* Force the layered gradient backgrounds + soft glows to actually
+     ink — without this, Safari/Chrome print stripped them entirely. */
+  body.print-invite-card .invite-bg,
+  body.print-invite-card .invite-glow {
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
   }
 }
 
-/* Named pages — each printable element claims its preferred sheet
-   geometry via `page: <name>` so route-specific page sizes survive
-   without requiring inline <style> shenanigans. */
-@page station-sheet {
-  size: A5;
-  margin: 10mm;
-}
-@page invite-sheet {
-  size: 148mm 105mm;
-  margin: 0;
-}
-
-.qr-print-card {
-  page: station-sheet;
-}
-.invite-print-card {
-  page: invite-sheet;
-}
+/* @page size is set per-route by the printable pages themselves via a
+   <style> element appended to <head> on mount (see /admin/qr and
+   /admin/qr/invite). Named pages were too unreliable across print
+   engines to rely on. */

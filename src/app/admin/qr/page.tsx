@@ -51,8 +51,16 @@ export default function AdminQRPage() {
   // unmount so other routes print normally.
   useEffect(() => {
     document.body.classList.add("print-station-cards");
+    // Inject the @page size declaration directly into <head>. Named pages
+    // in globals.css turned out unreliable across print engines, so each
+    // route now owns its own @page rule and removes it on unmount.
+    const style = document.createElement("style");
+    style.id = "page-station-style";
+    style.textContent = "@page { size: A5; margin: 10mm; }";
+    document.head.appendChild(style);
     return () => {
       document.body.classList.remove("print-station-cards");
+      style.remove();
     };
   }, []);
 
