@@ -101,6 +101,7 @@ export default function AdminInviteQRPage() {
                   height={40}
                   className="invite-logo"
                 />
+                <span className="invite-years">2016 — 2026</span>
               </div>
             </div>
           </div>
@@ -221,6 +222,12 @@ export default function AdminInviteQRPage() {
         .invite-logo {
           height: 6mm;
           width: auto;
+        }
+        .invite-years {
+          font-family: var(--font-mono, ui-monospace, monospace);
+          font-size: 2.8mm;
+          letter-spacing: 0.18em;
+          color: rgba(212, 165, 80, 0.85);
         }
 
         @media print {
