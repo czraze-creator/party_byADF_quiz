@@ -143,3 +143,92 @@
     padding-right: env(safe-area-inset-right);
   }
 }
+
+/* ---------------------------------------------------------------------
+   Print rules for the admin QR pages.
+
+   Pages that want to be printable add a marker class to <body> from a
+   client-side effect, scoping the rules below to just that route. This
+   keeps printing other pages from accidentally going blank.
+   --------------------------------------------------------------------- */
+
+@media print {
+  html,
+  body {
+    background: white !important;
+  }
+
+  /* Station-card tiles (/admin/qr) — one A5 sheet per card. */
+  body.print-station-cards * {
+    visibility: hidden !important;
+  }
+  body.print-station-cards .qr-print-card,
+  body.print-station-cards .qr-print-card * {
+    visibility: visible !important;
+  }
+  body.print-station-cards .qr-print-stack {
+    position: absolute !important;
+    left: 0;
+    top: 0;
+    right: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  body.print-station-cards .qr-print-card {
+    display: block !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    margin: 0 0 0 0 !important;
+  }
+  body.print-station-cards .qr-print-card:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+
+  /* Invite card (/admin/qr/invite) — single A6 landscape card. */
+  body.print-invite-card * {
+    visibility: hidden !important;
+  }
+  body.print-invite-card .invite-print-card,
+  body.print-invite-card .invite-print-card * {
+    visibility: visible !important;
+  }
+  body.print-invite-card .invite-print-card {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 148mm !important;
+    height: 105mm !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Page geometry: scope @page so each route prints at the right size. */
+  body.print-invite-card {
+    /* CSS @page can't be nested under selectors; we set this via the
+       inline @page below, which falls through because only one of
+       print-* classes will be on body at a time. */
+  }
+}
+
+/* Named pages — each printable element claims its preferred sheet
+   geometry via `page: <name>` so route-specific page sizes survive
+   without requiring inline <style> shenanigans. */
+@page station-sheet {
+  size: A5;
+  margin: 10mm;
+}
+@page invite-sheet {
+  size: 148mm 105mm;
+  margin: 0;
+}
+
+.qr-print-card {
+  page: station-sheet;
+}
+.invite-print-card {
+  page: invite-sheet;
+}

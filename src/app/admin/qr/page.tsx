@@ -46,6 +46,16 @@ export default function AdminQRPage() {
     };
   }, [router]);
 
+  // Mark <body> while this route is mounted so the print rules in
+  // globals.css scope themselves to just the QR cards. Cleaned up on
+  // unmount so other routes print normally.
+  useEffect(() => {
+    document.body.classList.add("print-station-cards");
+    return () => {
+      document.body.classList.remove("print-station-cards");
+    };
+  }, []);
+
   if (!stations) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -78,12 +88,12 @@ export default function AdminQRPage() {
         </button>
       </header>
 
-      <div className="grid grid-cols-1 gap-6 print:gap-0 sm:grid-cols-2">
+      <div className="qr-print-stack grid grid-cols-1 gap-6 print:gap-0 sm:grid-cols-2">
         {stations.map((s) => (
           <Card
             key={s.id}
             variant="strong"
-            className="overflow-hidden p-8 print:break-inside-avoid print:bg-white print:border-black/20 print:shadow-none print:rounded-none"
+            className="qr-print-card overflow-hidden p-8 print:bg-white print:border-black/20 print:shadow-none print:rounded-none"
           >
             <div className="flex items-center justify-between">
               <div>
@@ -132,25 +142,6 @@ export default function AdminQRPage() {
         ))}
       </div>
 
-      <style jsx global>{`
-        @media print {
-          @page {
-            size: A5;
-            margin: 12mm;
-          }
-          html,
-          body {
-            background: white !important;
-          }
-          body * {
-            visibility: hidden;
-          }
-          .print\\:break-inside-avoid,
-          .print\\:break-inside-avoid * {
-            visibility: visible;
-          }
-        }
-      `}</style>
     </div>
   );
 }

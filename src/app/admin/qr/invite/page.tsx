@@ -25,6 +25,14 @@ export default function AdminInviteQRPage() {
     };
   }, [router]);
 
+  // Scope the invite-card print rules in globals.css to just this route.
+  useEffect(() => {
+    document.body.classList.add("print-invite-card");
+    return () => {
+      document.body.classList.remove("print-invite-card");
+    };
+  }, []);
+
   if (authed !== true) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -58,8 +66,8 @@ export default function AdminInviteQRPage() {
       </header>
 
       {/* The printable card. Sized for A6 landscape (148×105 mm). */}
-      <div className="invite-print-root mx-auto print:m-0">
-        <div className="invite-card">
+      <div className="mx-auto print:m-0">
+        <div className="invite-card invite-print-card">
           <div className="invite-bg" aria-hidden="true" />
           <div className="invite-glow invite-glow-cyan" aria-hidden="true" />
           <div className="invite-glow invite-glow-gold" aria-hidden="true" />
@@ -228,36 +236,6 @@ export default function AdminInviteQRPage() {
           font-size: 2.8mm;
           letter-spacing: 0.18em;
           color: rgba(212, 165, 80, 0.85);
-        }
-
-        @media print {
-          @page {
-            size: 148mm 105mm;
-            margin: 0;
-          }
-          html,
-          body {
-            background: #ffffff !important;
-            margin: 0;
-            padding: 0;
-          }
-          body > *:not(.invite-print-root) {
-            display: none;
-          }
-          .invite-print-root,
-          .invite-print-root * {
-            visibility: visible !important;
-          }
-          .invite-card {
-            position: fixed;
-            inset: 0;
-            width: 148mm;
-            height: 105mm;
-            border-radius: 0;
-            box-shadow: none;
-            print-color-adjust: exact;
-            -webkit-print-color-adjust: exact;
-          }
         }
       `}</style>
     </div>
