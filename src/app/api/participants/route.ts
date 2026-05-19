@@ -4,10 +4,30 @@ import {
   findParticipantByEmail,
 } from "@/lib/db/store";
 import { setSessionCookie } from "@/lib/session";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const RATE_WINDOW_SECONDS = 60 * 60; // 1 hour
+const RATE_MAX = 3;
 
 export async function POST(req: Request) {
+  const ip = getClientIp(req);
+  const limit = await checkRateLimit(
+    ip,
+    "participants",
+    RATE_WINDOW_SECONDS,
+    RATE_MAX,
+  );
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: "rate_limited", retryAfterSeconds: limit.retryAfterSeconds },
+      {
+        status: 429,
+        headers: { "Retry-After": String(limit.retryAfterSeconds) },
+      },
+    );
+  }
+
   let body: unknown;
   try {
     body = await req.json();
