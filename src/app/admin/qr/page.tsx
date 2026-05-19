@@ -57,7 +57,7 @@ export default function AdminQRPage() {
     // route now owns its own @page rule and removes it on unmount.
     const style = document.createElement("style");
     style.id = "page-station-style";
-    style.textContent = "@page { size: A5; margin: 0; }";
+    style.textContent = "@page { size: 148mm 105mm; margin: 0; }";
     document.head.appendChild(style);
     return () => {
       document.body.classList.remove("print-station-cards");
@@ -77,9 +77,9 @@ export default function AdminQRPage() {
     setPrinting(true);
     try {
       await printElementsAsImages(cards, {
-        pageSize: "A5",
+        pageSize: "148mm 105mm",
         widthMm: 148,
-        heightMm: 210,
+        heightMm: 105,
       });
     } finally {
       setPrinting(false);
@@ -128,6 +128,7 @@ export default function AdminQRPage() {
             key={s.id}
             variant="strong"
             className="qr-print-card overflow-hidden p-8"
+            style={{ aspectRatio: "148 / 105" }}
           >
             <div className="flex items-center justify-between">
               <div>
