@@ -101,7 +101,7 @@ export default function IdentitaPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               error={errors.email}
-              placeholder="ales@analyticsdf.com"
+              placeholder="ales.vychodil@byadf.cz"
             />
             <Input
               label="Telefon (nepovinné)"
