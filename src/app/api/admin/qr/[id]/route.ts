@@ -17,12 +17,13 @@ export async function GET(
   if (!station) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
-  // QR deep-links straight to the station's unlock screen. Guests still type
-  // the code from the printed sheet — that's the "you're physically here"
-  // second factor.
+  // QR deep-links straight to the station's unlock screen AND carries the
+  // station code, so a scan from the printed sheet auto-unlocks — no manual
+  // typing. The code stays visible on the same sheet so a guest with a
+  // damaged QR can fall back to typing it.
   const url = new URL(req.url);
   const origin = `${url.protocol}//${url.host}`;
-  const target = `${origin}/play/station/${stationId}/unlock?utm_source=qr&utm_medium=station_${stationId}`;
+  const target = `${origin}/play/station/${stationId}/unlock?code=${encodeURIComponent(station.code)}&utm_source=qr&utm_medium=station_${stationId}`;
   const svg = await QRCode.toString(target, {
     type: "svg",
     errorCorrectionLevel: "Q",
