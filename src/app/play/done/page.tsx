@@ -6,6 +6,7 @@ import Image from "next/image";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/Button";
 import { fireConfetti } from "@/components/feedback/Confetti";
+import { vocative } from "@/lib/czech";
 
 type Me = {
   participant: { name: string };
@@ -117,8 +118,8 @@ export default function DonePage() {
           className="mt-4 max-w-sm text-balance text-[var(--color-text-muted)]"
         >
           {eligible
-            ? `Skvělá práce, ${me.participant.name.split(" ")[0]}. Zařadili jsme tě do slosování o ceny. Vyhlášení proběhne na hlavním pódiu.`
-            : `Díky za hru, ${me.participant.name.split(" ")[0]}. Tentokrát ses do slosování nedostal, ale stejně si dej ještě jednu skleničku.`}
+            ? `Skvělá práce, ${vocative(me.participant.name)}. Zařadili jsme tě do slosování o ceny. Vyhlášení proběhne na hlavním pódiu.`
+            : `Díky za hru, ${vocative(me.participant.name)}. Tentokrát ses do slosování nedostal, ale stejně si dej ještě jednu skleničku.`}
         </motion.p>
 
         <motion.div

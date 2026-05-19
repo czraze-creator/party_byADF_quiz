@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { fadeUp, itemTransition, stagger } from "@/lib/motion";
+import { vocative } from "@/lib/czech";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -128,7 +129,6 @@ function IdentitaForm() {
   }
 
   if (resumed) {
-    const firstName = resumed.name.split(" ")[0];
     return (
       <div className="flex flex-1 items-center justify-center px-6">
         <motion.div
@@ -139,7 +139,7 @@ function IdentitaForm() {
         >
           <div className="text-5xl">👋</div>
           <h2 className="text-display mt-5 text-3xl font-medium">
-            Vítej zpátky, {firstName}.
+            Vítej zpátky, {vocative(resumed.name)}.
           </h2>
           <p className="mt-3 text-[var(--color-text-muted)]">
             Pokračujeme tam, kde jsi skončil.

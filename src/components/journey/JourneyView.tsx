@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { StationNode } from "@/components/journey/StationNode";
+import { vocative } from "@/lib/czech";
 import type { PublicProgress, PublicStation } from "@/lib/types";
 
 type Me = {
@@ -108,7 +109,7 @@ export function JourneyView() {
         className="mx-auto mt-8 w-full max-w-md"
       >
         <h1 className="text-display text-3xl font-medium tracking-tight">
-          Ahoj, {me.participant.name.split(" ")[0]}.
+          Ahoj, {vocative(me.participant.name)}.
         </h1>
         <p className="mt-2 text-[var(--color-text-muted)]">
           Všechna stanoviště jsou otevřená — projdi je v libovolném pořadí.
