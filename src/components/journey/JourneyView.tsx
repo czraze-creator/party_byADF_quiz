@@ -66,13 +66,6 @@ export function JourneyView() {
   }
 
   const totalCorrect = me.progress.filter((p) => p.isCorrect === true).length;
-  const activeIndex = (() => {
-    const idx = stations.findIndex((s) => {
-      const p = me.progress.find((x) => x.stationId === s.id);
-      return !p || p.state !== "completed";
-    });
-    return idx === -1 ? stations.length - 1 : idx;
-  })();
 
   return (
     <div className="relative flex flex-1 flex-col px-5 pt-6 pb-10">
@@ -118,8 +111,8 @@ export function JourneyView() {
           Ahoj, {me.participant.name.split(" ")[0]}.
         </h1>
         <p className="mt-2 text-[var(--color-text-muted)]">
-          Tvoje mise pro dnešní večer. Začni libovolným stanovištěm — nebo
-          klepni na to, které ti zrovna padne.
+          Všechna stanoviště jsou otevřená — projdi je v libovolném pořadí.
+          Naskenuj QR na stanovišti nebo klepni na dlaždici.
         </p>
       </motion.div>
 
@@ -136,13 +129,11 @@ export function JourneyView() {
         <div className="flex flex-col gap-5">
           {stations.map((s, i) => {
             const progress = me.progress.find((p) => p.stationId === s.id);
-            const isActive = i === activeIndex;
             return (
               <StationNode
                 key={s.id}
                 station={s}
                 progress={progress}
-                isActive={isActive}
                 index={i}
               />
             );

@@ -8,19 +8,29 @@ import { cn } from "@/lib/cn";
 type Props = {
   station: PublicStation;
   progress: PublicProgress | undefined;
-  isActive: boolean;
   index: number;
 };
 
-export function StationNode({ station, progress, isActive, index }: Props) {
+export function StationNode({ station, progress, index }: Props) {
   const state = progress?.state ?? "locked";
-  const isCompletedCorrect = state === "completed" && progress?.isCorrect === true;
-  const isCompletedWrong = state === "completed" && progress?.isCorrect === false;
+  const isCompletedCorrect =
+    state === "completed" && progress?.isCorrect === true;
+  const isCompletedWrong =
+    state === "completed" && progress?.isCorrect === false;
+  const isUnlocked = state === "unlocked";
+  const isPending = !isCompletedCorrect && !isCompletedWrong;
 
-  const href =
-    state === "locked" || state === "unlocked"
-      ? `/play/station/${station.id}/unlock`
-      : `/play/station/${station.id}/question`;
+  const href = isPending
+    ? `/play/station/${station.id}/unlock`
+    : `/play/station/${station.id}/question`;
+
+  const hint = isCompletedCorrect
+    ? "Splněno"
+    : isCompletedWrong
+      ? "Bohužel špatně"
+      : isUnlocked
+        ? "Odpověz na otázku"
+        : station.hint;
 
   return (
     <motion.div
@@ -31,31 +41,16 @@ export function StationNode({ station, progress, isActive, index }: Props) {
     >
       {/* node dot column */}
       <div className="flex flex-col items-center">
-        <div className="relative flex h-12 w-12 shrink-0 items-center justify-center">
-          {isActive && state !== "completed" && (
-            <motion.span
-              aria-hidden
-              className="absolute inset-0 rounded-full"
-              style={{ background: "var(--color-accent-glow)" }}
-              animate={{ scale: [1, 1.4, 1], opacity: [0.6, 0, 0.6] }}
-              transition={{ duration: 2.2, repeat: Infinity }}
-            />
-          )}
+        <div className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center">
           <div
             className={cn(
-              "relative z-10 flex h-10 w-10 items-center justify-center rounded-full border font-mono text-sm transition-colors",
+              "flex h-10 w-10 items-center justify-center rounded-full border font-mono text-sm transition-colors",
               isCompletedCorrect &&
                 "border-[var(--color-success)] bg-[var(--color-success-soft)] text-[var(--color-success)]",
               isCompletedWrong &&
                 "border-[var(--color-error)] bg-[var(--color-error-soft)] text-[var(--color-error)]",
-              !isCompletedCorrect &&
-                !isCompletedWrong &&
-                isActive &&
-                "border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)] shadow-[0_0_24px_var(--color-accent-glow)]",
-              !isCompletedCorrect &&
-                !isCompletedWrong &&
-                !isActive &&
-                "border-white/10 bg-white/[0.03] text-[var(--color-text-faint)]",
+              isPending &&
+                "border-[var(--color-accent)]/50 bg-[var(--color-accent-soft)] text-[var(--color-accent)]",
             )}
           >
             {isCompletedCorrect ? (
@@ -98,17 +93,11 @@ export function StationNode({ station, progress, isActive, index }: Props) {
         className={cn(
           "group relative flex-1 cursor-pointer rounded-2xl border p-5 transition",
           isCompletedCorrect &&
-            "border-[var(--color-success)]/40 bg-[var(--color-success-soft)] hover:bg-[var(--color-success-soft)]",
+            "border-[var(--color-success)]/40 bg-[var(--color-success-soft)]",
           isCompletedWrong &&
-            "border-[var(--color-error)]/40 bg-[var(--color-error-soft)] hover:bg-[var(--color-error-soft)]",
-          !isCompletedCorrect &&
-            !isCompletedWrong &&
-            isActive &&
-            "border-[var(--color-accent)]/40 bg-white/[0.04] hover:bg-white/[0.06] shadow-[0_0_0_1px_var(--color-accent-soft),0_18px_50px_-20px_var(--color-accent-glow)]",
-          !isCompletedCorrect &&
-            !isCompletedWrong &&
-            !isActive &&
-            "border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04]",
+            "border-[var(--color-error)]/40 bg-[var(--color-error-soft)]",
+          isPending &&
+            "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-[var(--color-accent)]/30",
         )}
       >
         <div className="flex items-center justify-between gap-3">
@@ -123,15 +112,7 @@ export function StationNode({ station, progress, isActive, index }: Props) {
               {station.name}
             </div>
             <div className="mt-1 text-sm text-[var(--color-text-muted)]">
-              {isCompletedCorrect
-                ? "Splněno"
-                : isCompletedWrong
-                  ? "Bohužel špatně"
-                  : isActive
-                    ? state === "unlocked"
-                      ? "Odpověz na otázku"
-                      : "Připraveno k odemčení"
-                    : station.hint}
+              {hint}
             </div>
           </div>
           <svg
@@ -147,14 +128,7 @@ export function StationNode({ station, progress, isActive, index }: Props) {
               "shrink-0 transition-transform group-hover:translate-x-0.5",
               isCompletedCorrect && "text-[var(--color-success)]",
               isCompletedWrong && "text-[var(--color-error)]",
-              !isCompletedCorrect &&
-                !isCompletedWrong &&
-                isActive &&
-                "text-[var(--color-accent)]",
-              !isCompletedCorrect &&
-                !isCompletedWrong &&
-                !isActive &&
-                "text-[var(--color-text-faint)]",
+              isPending && "text-[var(--color-accent)]",
             )}
           >
             <polyline points="9 18 15 12 9 6" />
