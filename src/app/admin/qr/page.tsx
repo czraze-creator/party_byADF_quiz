@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Card } from "@/components/ui/Card";
-import { printElementsAsImages } from "@/lib/printAsImage";
+import { printImageUrls } from "@/lib/printAsImage";
 
 type Station = {
   id: number;
@@ -16,10 +16,8 @@ type Station = {
 export default function AdminQRPage() {
   const router = useRouter();
   const [stations, setStations] = useState<Station[] | null>(null);
-  const [origin, setOrigin] = useState("");
 
   useEffect(() => {
-    if (typeof window !== "undefined") setOrigin(window.location.origin);
     let cancelled = false;
     async function load() {
       const res = await fetch("/api/admin/dashboard", { cache: "no-store" });
@@ -65,18 +63,18 @@ export default function AdminQRPage() {
     };
   }, []);
 
-  const stackRef = useRef<HTMLDivElement | null>(null);
   const [printing, setPrinting] = useState(false);
 
+  // Print uses static screenshot PNGs in /public/print/ (one per station)
+  // rather than rasterising the live DOM. Dynamic rendering kept drifting
+  // from the approved design across printers, so the source of truth for
+  // the printed sheet is now a fixed image checked into the repo.
   async function handlePrint() {
-    if (!stackRef.current) return;
-    const cards = Array.from(
-      stackRef.current.querySelectorAll<HTMLElement>(".qr-print-card"),
-    );
-    if (cards.length === 0) return;
+    if (!stations || stations.length === 0) return;
     setPrinting(true);
     try {
-      await printElementsAsImages(cards, {
+      const urls = stations.map((s) => `/print/station-${s.id}.png`);
+      await printImageUrls(urls, {
         pageSize: "148mm 105mm",
         widthMm: 148,
         heightMm: 105,
@@ -119,10 +117,7 @@ export default function AdminQRPage() {
         </button>
       </header>
 
-      <div
-        ref={stackRef}
-        className="qr-print-stack grid grid-cols-1 gap-6 sm:grid-cols-2"
-      >
+      <div className="qr-print-stack grid grid-cols-1 gap-6 sm:grid-cols-2">
         {stations.map((s) => (
           <Card
             key={s.id}

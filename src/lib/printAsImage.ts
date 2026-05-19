@@ -101,3 +101,69 @@ export async function printElementsAsImages(
     iframe.remove();
   }, 60_000);
 }
+
+// Print a list of pre-rendered PNG URLs (one per page). Simpler sibling
+// of printElementsAsImages — no DOM capture, just an iframe document
+// with one image per sheet. Used by the admin print routes since live
+// rendering kept drifting from the approved screenshot designs.
+export async function printImageUrls(
+  urls: string[],
+  { pageSize, widthMm, heightMm }: Omit<PrintAsImageOptions, "pxPerMm">,
+): Promise<void> {
+  if (urls.length === 0) return;
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8" />
+    <title>Print</title>
+    <style>
+      @page { size: ${pageSize}; margin: 0; }
+      html, body { margin: 0; padding: 0; background: #fff; }
+      .sheet {
+        width: ${widthMm}mm;
+        height: ${heightMm}mm;
+        display: block;
+        page-break-after: always;
+        break-after: page;
+      }
+      .sheet:last-child { page-break-after: auto; break-after: auto; }
+      img { width: 100%; height: 100%; display: block; object-fit: cover; }
+    </style></head><body>
+    ${urls.map((u) => `<div class="sheet"><img src="${u}" /></div>`).join("")}
+    </body></html>`;
+
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentDocument!;
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  await new Promise<void>((resolve) => {
+    const imgs = Array.from(doc.images);
+    if (imgs.length === 0) return resolve();
+    let left = imgs.length;
+    const done = () => {
+      if (--left === 0) resolve();
+    };
+    imgs.forEach((img) => {
+      if (img.complete) done();
+      else {
+        img.addEventListener("load", done);
+        img.addEventListener("error", done);
+      }
+    });
+  });
+
+  iframe.contentWindow?.focus();
+  iframe.contentWindow?.print();
+
+  window.setTimeout(() => {
+    iframe.remove();
+  }, 60_000);
+}

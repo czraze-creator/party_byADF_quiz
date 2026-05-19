@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { printElementsAsImages } from "@/lib/printAsImage";
+import { printImageUrls } from "@/lib/printAsImage";
 
 export default function AdminInviteQRPage() {
   const router = useRouter();
@@ -41,14 +41,14 @@ export default function AdminInviteQRPage() {
     };
   }, []);
 
-  const cardRef = useRef<HTMLDivElement | null>(null);
   const [printing, setPrinting] = useState(false);
 
+  // See /admin/qr — print uses a static screenshot PNG checked into
+  // /public/print/ instead of rasterising the live DOM.
   async function handlePrint() {
-    if (!cardRef.current) return;
     setPrinting(true);
     try {
-      await printElementsAsImages([cardRef.current], {
+      await printImageUrls(["/print/invite.png"], {
         pageSize: "148mm 105mm",
         widthMm: 148,
         heightMm: 105,
@@ -93,7 +93,7 @@ export default function AdminInviteQRPage() {
 
       {/* The printable card. Sized for A6 landscape (148×105 mm). */}
       <div className="mx-auto print:m-0">
-        <div ref={cardRef} className="invite-card invite-print-card">
+        <div className="invite-card invite-print-card">
           <div className="invite-bg" aria-hidden="true" />
           <div className="invite-glow invite-glow-cyan" aria-hidden="true" />
           <div className="invite-glow invite-glow-gold" aria-hidden="true" />
