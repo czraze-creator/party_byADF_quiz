@@ -38,7 +38,13 @@ export default async function AdminLayout({
                 href="/admin/qr"
                 className="rounded-lg px-3 py-1.5 text-[var(--color-text-muted)] hover:bg-white/[0.04] hover:text-[var(--color-text)]"
               >
-                QR kódy
+                Stanoviště
+              </Link>
+              <Link
+                href="/admin/qr/invite"
+                className="rounded-lg px-3 py-1.5 text-[var(--color-text-muted)] hover:bg-white/[0.04] hover:text-[var(--color-text)]"
+              >
+                Pozvánka
               </Link>
               <LogoutButton />
             </nav>
