@@ -6,11 +6,9 @@ import Image from "next/image";
 
 export default function AdminInviteQRPage() {
   const router = useRouter();
-  const [origin, setOrigin] = useState("");
   const [authed, setAuthed] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (typeof window !== "undefined") setOrigin(window.location.origin);
     let cancelled = false;
     async function check() {
       const res = await fetch("/api/admin/dashboard", { cache: "no-store" });
@@ -34,8 +32,6 @@ export default function AdminInviteQRPage() {
       </div>
     );
   }
-
-  const cleanHost = origin.replace(/^https?:\/\//, "");
 
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-10">
@@ -105,7 +101,6 @@ export default function AdminInviteQRPage() {
                   height={40}
                   className="invite-logo"
                 />
-                <span className="invite-url">{cleanHost}</span>
               </div>
             </div>
           </div>
@@ -226,12 +221,6 @@ export default function AdminInviteQRPage() {
         .invite-logo {
           height: 6mm;
           width: auto;
-        }
-        .invite-url {
-          font-family: var(--font-mono, ui-monospace, monospace);
-          font-size: 2.8mm;
-          letter-spacing: 0.04em;
-          color: rgba(244, 246, 250, 0.6);
         }
 
         @media print {
