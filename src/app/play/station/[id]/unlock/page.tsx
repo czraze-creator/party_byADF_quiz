@@ -34,10 +34,16 @@ function UnlockInner({ stationId }: { stationId: number }) {
   const initialCode = (searchParams.get("code") ?? "").trim().toUpperCase();
 
   const [station, setStation] = useState<PublicStation | null>(null);
+  const [allStations, setAllStations] = useState<PublicStation[]>([]);
   const [code, setCode] = useState(initialCode);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [redirectInfo, setRedirectInfo] = useState<{
+    stationId: number;
+    stationName: string | null;
+    emoji: string | null;
+  } | null>(null);
   const autoSubmitted = useRef(false);
 
   // Single combined effect: do all auth/progress/station checks BEFORE
@@ -67,6 +73,7 @@ function UnlockInner({ stationId }: { stationId: number }) {
         const mData = await mRes.json();
         const s = sData.stations.find((x) => x.id === stationId) ?? null;
         if (cancelled) return;
+        setAllStations(sData.stations);
         if (!s) {
           router.replace("/play/journey");
           return;
@@ -154,22 +161,71 @@ function UnlockInner({ stationId }: { stationId: number }) {
         setError("Tenhle QR nepatří ke hře. Zkus to znovu.");
         return;
       }
-      // If the scan was for a different station, route there with the code.
+      // If the scan was for a different station, show a brief notice and
+      // redirect there with the code — no silent teleport, the guest sees
+      // exactly which station we're routing them to.
       if (parsedStationId && parsedStationId !== stationId) {
-        router.replace(
-          `/play/station/${parsedStationId}/unlock?code=${encodeURIComponent(parsedCode)}`,
-        );
+        const target =
+          allStations.find((s) => s.id === parsedStationId) ?? null;
+        setRedirectInfo({
+          stationId: parsedStationId,
+          stationName: target?.name ?? null,
+          emoji: target?.emoji ?? null,
+        });
+        setTimeout(() => {
+          router.replace(
+            `/play/station/${parsedStationId}/unlock?code=${encodeURIComponent(parsedCode!)}`,
+          );
+        }, 1400);
         return;
       }
       setCode(parsedCode.toUpperCase());
       submit(parsedCode);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [stationId, router],
+    [stationId, router, allStations],
   );
 
   if (!station) {
     return <Spinner />;
+  }
+
+  // Wrong-station scan: brief explainer before we route the guest to the
+  // station their QR actually belongs to.
+  if (redirectInfo) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+        <div className="glass-strong flex h-24 w-24 items-center justify-center rounded-full text-5xl">
+          {redirectInfo.emoji ?? "🎯"}
+        </div>
+        <span className="mt-6 text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+          Jiné stanoviště
+        </span>
+        <h1 className="text-display mt-1 text-3xl font-medium">
+          Tenhle QR patří{" "}
+          {redirectInfo.stationName ? (
+            <>
+              ke stanovišti{" "}
+              <span className="text-[var(--color-accent)]">
+                {redirectInfo.stationName}
+              </span>
+            </>
+          ) : (
+            <>
+              ke stanovišti{" "}
+              <span className="text-[var(--color-accent)]">
+                {String(redirectInfo.stationId).padStart(2, "0")}
+              </span>
+            </>
+          )}
+          .
+        </h1>
+        <p className="mt-3 max-w-xs text-balance text-[var(--color-text-muted)]">
+          Přesouvám tě tam…
+        </p>
+        <div className="mt-8 h-6 w-6 animate-spin rounded-full border-2 border-[var(--color-accent)] border-t-transparent" />
+      </div>
+    );
   }
 
   // If we're auto-submitting from a QR scan, show a friendlier "unlocking"
