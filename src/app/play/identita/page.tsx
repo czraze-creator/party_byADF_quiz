@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/Button";
@@ -41,6 +41,30 @@ function IdentitaForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = safeNext(searchParams.get("next"));
+
+  // Short-circuit: if the visitor already has a valid session (e.g. scanned
+  // a station QR after registering on the same device), skip the form and
+  // route straight to nextPath / journey. Keeps the page from re-asking
+  // people for their name + email when we already know who they are.
+  const [checkingSession, setCheckingSession] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/me", { cache: "no-store" });
+        if (!cancelled && res.ok) {
+          router.replace(nextPath);
+          return;
+        }
+      } catch {
+        /* fall through to showing the form */
+      }
+      if (!cancelled) setCheckingSession(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [router, nextPath]);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -97,6 +121,10 @@ function IdentitaForm() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (checkingSession) {
+    return <IdentitaFallback />;
   }
 
   if (resumed) {
