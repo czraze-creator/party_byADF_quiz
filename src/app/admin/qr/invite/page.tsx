@@ -136,24 +136,44 @@ export default function AdminInviteQRPage() {
         }
         .invite-glow {
           position: absolute;
-          filter: blur(40px);
-          opacity: 0.55;
           pointer-events: none;
-          border-radius: 50%;
         }
+        /* Wide, soft radial stops give a blurred look that survives print
+           (filter: blur is dropped on most print engines, which turns the
+           glow into a hard disc). Mild blur stays for extra softness on
+           screen but is purely cosmetic. */
         .invite-glow-cyan {
-          width: 70mm;
-          height: 70mm;
-          top: -10mm;
-          right: -10mm;
-          background: radial-gradient(closest-side, rgba(0, 184, 212, 0.6), transparent);
+          width: 120mm;
+          height: 120mm;
+          top: -50mm;
+          right: -50mm;
+          background: radial-gradient(
+            circle,
+            rgba(0, 184, 212, 0.45) 0%,
+            rgba(0, 184, 212, 0.18) 28%,
+            rgba(0, 184, 212, 0.05) 55%,
+            transparent 75%
+          );
+          filter: blur(8px);
         }
         .invite-glow-gold {
-          width: 80mm;
-          height: 80mm;
-          bottom: -20mm;
-          left: -10mm;
-          background: radial-gradient(closest-side, rgba(212, 165, 80, 0.35), transparent);
+          width: 130mm;
+          height: 130mm;
+          bottom: -60mm;
+          left: -55mm;
+          background: radial-gradient(
+            circle,
+            rgba(212, 165, 80, 0.28) 0%,
+            rgba(212, 165, 80, 0.12) 28%,
+            rgba(212, 165, 80, 0.04) 55%,
+            transparent 78%
+          );
+          filter: blur(8px);
+        }
+        @media print {
+          .invite-glow {
+            filter: none !important;
+          }
         }
         .invite-content {
           position: relative;

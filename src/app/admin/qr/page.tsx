@@ -93,16 +93,16 @@ export default function AdminQRPage() {
           <Card
             key={s.id}
             variant="strong"
-            className="qr-print-card overflow-hidden p-8 print:bg-white print:border-black/20 print:shadow-none print:rounded-none"
+            className="qr-print-card overflow-hidden p-8 print:rounded-none print:shadow-none"
           >
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)] print:text-black/50">
+                <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
                   Stanoviště {String(s.id).padStart(2, "0")}
                 </div>
                 <div className="mt-2 flex items-center gap-3">
                   <span className="text-3xl">{s.emoji}</span>
-                  <span className="text-2xl font-medium tracking-tight print:text-black">
+                  <span className="text-2xl font-medium tracking-tight text-[var(--color-text)]">
                     {s.name}
                   </span>
                 </div>
@@ -112,30 +112,30 @@ export default function AdminQRPage() {
                 alt="ADF"
                 width={120}
                 height={40}
-                className="h-8 w-auto print:hidden"
+                className="h-8 w-auto"
               />
             </div>
             <div className="mt-6 grid grid-cols-[1fr_auto] gap-6 items-center">
               <div>
-                <div className="text-xs uppercase tracking-[0.22em] text-[var(--color-text-muted)] print:text-black/50">
+                <div className="text-xs uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
                   Tvůj kód
                 </div>
-                <div className="font-mono text-display mt-2 text-6xl font-medium tracking-tight text-[var(--color-accent)] print:text-black">
+                <div className="font-mono text-display mt-2 text-6xl font-medium tracking-tight text-[var(--color-accent)]">
                   {s.code}
                 </div>
-                <div className="mt-4 text-sm text-[var(--color-text-muted)] print:text-black/70">
+                <div className="mt-4 text-sm text-[var(--color-text-muted)]">
                   Naskenuj QR · zadej kód · odpověz.
                 </div>
               </div>
-              <div className="rounded-2xl bg-white p-3">
+              <div className="rounded-2xl bg-white p-3 print:rounded-none">
                 <img
                   src={`/api/admin/qr/${s.id}`}
                   alt={`QR ${s.name}`}
-                  className="h-44 w-44"
+                  className="h-44 w-44 print:h-[55mm] print:w-[55mm]"
                 />
               </div>
             </div>
-            <div className="mt-6 hidden text-center text-[10px] uppercase tracking-[0.3em] text-black/40 print:block">
+            <div className="mt-6 hidden text-center text-[10px] uppercase tracking-[0.3em] text-[var(--color-text-faint)] print:block">
               Party byADF · {origin.replace(/^https?:\/\//, "")}
             </div>
           </Card>
