@@ -1,104 +1,193 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
 import { nanoid } from "nanoid";
 import type {
+  Answer,
   Participant,
   Question,
   Station,
   StationId,
   StationProgress,
 } from "../types";
-import { SEED_QUESTIONS, SEED_STATIONS } from "./seed";
+import { getSupabaseAdmin } from "../supabase/server";
 
-type DbShape = {
-  stations: Station[];
-  questions: Question[];
-  participants: Participant[];
-  progress: StationProgress[];
+// ---------------------------------------------------------------------
+// Row → domain object mappers (DB uses snake_case, TS uses camelCase)
+// ---------------------------------------------------------------------
+
+type StationRow = {
+  id: number;
+  name: string;
+  emoji: string;
+  hint: string;
+  code: string;
+  order_index: number;
 };
 
-const DATA_DIR =
-  process.env.QUIZ_DATA_DIR ?? path.join(process.cwd(), ".data");
-const DATA_FILE = path.join(DATA_DIR, "quiz.json");
+type QuestionRow = {
+  id: string;
+  station_id: number;
+  text: string;
+  emoji: string;
+};
 
-let memCache: DbShape | null = null;
-let writeQueue: Promise<void> = Promise.resolve();
+type AnswerRow = {
+  id: string;
+  question_id: string;
+  text: string;
+  is_correct: boolean;
+};
 
-async function ensureLoaded(): Promise<DbShape> {
-  if (memCache) return memCache;
-  try {
-    const buf = await fs.readFile(DATA_FILE, "utf8");
-    memCache = JSON.parse(buf) as DbShape;
-    let mutated = false;
-    if (!memCache.stations?.length) {
-      memCache.stations = SEED_STATIONS;
-      mutated = true;
-    }
-    if (!memCache.questions?.length) {
-      memCache.questions = SEED_QUESTIONS;
-      mutated = true;
-    }
-    if (mutated) await persist();
-    return memCache;
-  } catch {
-    memCache = {
-      stations: SEED_STATIONS,
-      questions: SEED_QUESTIONS,
-      participants: [],
-      progress: [],
-    };
-    await persist();
-    return memCache;
-  }
+type ParticipantRow = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  consent_marketing: boolean;
+  session_token: string;
+  created_at: string;
+};
+
+type ProgressRow = {
+  participant_id: string;
+  station_id: number;
+  unlocked_at: string | null;
+  answered_at: string | null;
+  selected_answer_id: string | null;
+  is_correct: boolean | null;
+};
+
+function mapStation(r: StationRow): Station {
+  return {
+    id: r.id as StationId,
+    name: r.name,
+    emoji: r.emoji,
+    hint: r.hint,
+    code: r.code,
+    orderIndex: r.order_index,
+  };
 }
 
-async function persist(): Promise<void> {
-  if (!memCache) return;
-  const snapshot = JSON.stringify(memCache, null, 2);
-  writeQueue = writeQueue.then(async () => {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-    await fs.writeFile(DATA_FILE, snapshot, "utf8");
-  });
-  await writeQueue;
+function mapAnswer(r: AnswerRow): Answer {
+  return { id: r.id, text: r.text, isCorrect: r.is_correct };
 }
+
+function mapParticipant(r: ParticipantRow): Participant {
+  return {
+    id: r.id,
+    name: r.name,
+    email: r.email,
+    phone: r.phone,
+    consentMarketing: r.consent_marketing,
+    sessionToken: r.session_token,
+    createdAt: r.created_at,
+  };
+}
+
+function mapProgress(r: ProgressRow): StationProgress {
+  return {
+    participantId: r.participant_id,
+    stationId: r.station_id as StationId,
+    unlockedAt: r.unlocked_at,
+    answeredAt: r.answered_at,
+    selectedAnswerId: r.selected_answer_id,
+    isCorrect: r.is_correct,
+  };
+}
+
+// ---------------------------------------------------------------------
+// Stations & questions (read-only static data)
+// ---------------------------------------------------------------------
 
 export async function listStations(): Promise<Station[]> {
-  const db = await ensureLoaded();
-  return [...db.stations].sort((a, b) => a.orderIndex - b.orderIndex);
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("stations")
+    .select("*")
+    .order("order_index", { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map(mapStation);
 }
 
 export async function getStation(id: StationId): Promise<Station | null> {
-  const db = await ensureLoaded();
-  return db.stations.find((s) => s.id === id) ?? null;
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("stations")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? mapStation(data) : null;
+}
+
+async function loadQuestion(row: QuestionRow | null): Promise<Question | null> {
+  if (!row) return null;
+  const sb = getSupabaseAdmin();
+  const { data: answers, error } = await sb
+    .from("answers")
+    .select("*")
+    .eq("question_id", row.id);
+  if (error) throw error;
+  return {
+    id: row.id,
+    stationId: row.station_id as StationId,
+    text: row.text,
+    emoji: row.emoji,
+    answers: (answers ?? []).map(mapAnswer),
+  };
 }
 
 export async function getQuestionForStation(
   stationId: StationId,
 ): Promise<Question | null> {
-  const db = await ensureLoaded();
-  return db.questions.find((q) => q.stationId === stationId) ?? null;
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("questions")
+    .select("*")
+    .eq("station_id", stationId)
+    .maybeSingle();
+  if (error) throw error;
+  return loadQuestion(data);
 }
 
 export async function getQuestion(id: string): Promise<Question | null> {
-  const db = await ensureLoaded();
-  return db.questions.find((q) => q.id === id) ?? null;
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("questions")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return loadQuestion(data);
 }
+
+// ---------------------------------------------------------------------
+// Participants
+// ---------------------------------------------------------------------
 
 export async function findParticipantByEmail(
   email: string,
 ): Promise<Participant | null> {
-  const db = await ensureLoaded();
+  const sb = getSupabaseAdmin();
   const normalized = email.trim().toLowerCase();
-  return (
-    db.participants.find((p) => p.email.toLowerCase() === normalized) ?? null
-  );
+  const { data, error } = await sb
+    .from("participants")
+    .select("*")
+    .eq("email", normalized)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? mapParticipant(data) : null;
 }
 
 export async function findParticipantBySession(
   token: string,
 ): Promise<Participant | null> {
-  const db = await ensureLoaded();
-  return db.participants.find((p) => p.sessionToken === token) ?? null;
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("participants")
+    .select("*")
+    .eq("session_token", token)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? mapParticipant(data) : null;
 }
 
 export async function createParticipant(input: {
@@ -107,62 +196,107 @@ export async function createParticipant(input: {
   phone?: string | null;
   consentMarketing: boolean;
 }): Promise<Participant> {
-  const db = await ensureLoaded();
-  const participant: Participant = {
+  const sb = getSupabaseAdmin();
+  const row: ParticipantRow = {
     id: nanoid(12),
     name: input.name.trim(),
     email: input.email.trim().toLowerCase(),
     phone: input.phone?.trim() || null,
-    consentMarketing: input.consentMarketing,
-    sessionToken: nanoid(32),
-    createdAt: new Date().toISOString(),
+    consent_marketing: input.consentMarketing,
+    session_token: nanoid(32),
+    created_at: new Date().toISOString(),
   };
-  db.participants.push(participant);
-  await persist();
-  return participant;
+  const { data, error } = await sb
+    .from("participants")
+    .insert(row)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return mapParticipant(data);
 }
+
+// ---------------------------------------------------------------------
+// Progress
+// ---------------------------------------------------------------------
 
 export async function getProgress(
   participantId: string,
 ): Promise<StationProgress[]> {
-  const db = await ensureLoaded();
-  return db.progress.filter((p) => p.participantId === participantId);
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("progress")
+    .select("*")
+    .eq("participant_id", participantId);
+  if (error) throw error;
+  return (data ?? []).map(mapProgress);
 }
 
 export async function upsertProgress(
   patch: StationProgress,
 ): Promise<StationProgress> {
-  const db = await ensureLoaded();
-  const idx = db.progress.findIndex(
-    (p) =>
-      p.participantId === patch.participantId &&
-      p.stationId === patch.stationId,
-  );
-  if (idx === -1) {
-    db.progress.push(patch);
-  } else {
-    db.progress[idx] = { ...db.progress[idx], ...patch };
-  }
-  await persist();
-  return patch;
+  const sb = getSupabaseAdmin();
+  const row: ProgressRow = {
+    participant_id: patch.participantId,
+    station_id: patch.stationId,
+    unlocked_at: patch.unlockedAt,
+    answered_at: patch.answeredAt,
+    selected_answer_id: patch.selectedAnswerId,
+    is_correct: patch.isCorrect,
+  };
+  const { data, error } = await sb
+    .from("progress")
+    .upsert(row, { onConflict: "participant_id,station_id" })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return mapProgress(data);
 }
 
 export async function resetParticipantProgress(
   participantId: string,
 ): Promise<void> {
-  const db = await ensureLoaded();
-  db.progress = db.progress.filter((p) => p.participantId !== participantId);
-  await persist();
+  const sb = getSupabaseAdmin();
+  const { error } = await sb
+    .from("progress")
+    .delete()
+    .eq("participant_id", participantId);
+  if (error) throw error;
 }
+
+// ---------------------------------------------------------------------
+// Admin aggregate
+// ---------------------------------------------------------------------
 
 export async function listAllParticipantsWithProgress(): Promise<
   Array<Participant & { progress: StationProgress[]; completed: boolean }>
 > {
-  const db = await ensureLoaded();
-  const stationCount = db.stations.length;
-  return db.participants.map((p) => {
-    const progress = db.progress.filter((x) => x.participantId === p.id);
-    const correct = progress.filter((x) => x.isCorrect === true).length;
-    return { ...p, progress, completed: correct === stationCount };
+  const sb = getSupabaseAdmin();
+  const [
+    { data: participants, error: pErr },
+    { data: progress, error: prErr },
+    { count: stationCount, error: sErr },
+  ] = await Promise.all([
+    sb.from("participants").select("*").order("created_at", { ascending: true }),
+    sb.from("progress").select("*"),
+    sb.from("stations").select("*", { count: "exact", head: true }),
+  ]);
+  if (pErr) throw pErr;
+  if (prErr) throw prErr;
+  if (sErr) throw sErr;
+
+  const totalStations = stationCount ?? 0;
+  const progressByParticipant = new Map<string, StationProgress[]>();
+  for (const r of progress ?? []) {
+    const mapped = mapProgress(r);
+    const arr = progressByParticipant.get(mapped.participantId) ?? [];
+    arr.push(mapped);
+    progressByParticipant.set(mapped.participantId, arr);
+  }
+
+  return (participants ?? []).map((row) => {
+    const p = mapParticipant(row);
+    const own = progressByParticipant.get(p.id) ?? [];
+    const correct = own.filter((x) => x.isCorrect === true).length;
+    return { ...p, progress: own, completed: correct === totalStations };
   });
 }
