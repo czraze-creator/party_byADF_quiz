@@ -224,7 +224,11 @@ function IdentitaForm() {
                 ? "E-mail nemá správný formát."
                 : submitError === "invalid_name"
                   ? "Jméno musí mít alespoň 2 znaky."
-                  : "Něco se nepovedlo, zkus znovu."}
+                  : submitError === "rate_limited"
+                    ? "Z této sítě se zkoušelo přihlásit moc lidí najednou. Zkus to za chvíli, nebo přepni na mobilní data."
+                    : submitError === "game_closed"
+                      ? "Hra už je uzavřena, registrace nejsou možné."
+                      : "Něco se nepovedlo, zkus znovu."}
             </p>
           )}
 

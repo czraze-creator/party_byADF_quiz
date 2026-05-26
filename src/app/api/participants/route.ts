@@ -9,7 +9,7 @@ import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const RATE_WINDOW_SECONDS = 60 * 60; // 1 hour
-const RATE_MAX = 3;
+const RATE_MAX = 300;
 
 export async function POST(req: Request) {
   const state = await getGameState();
