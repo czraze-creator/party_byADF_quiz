@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  getGameState,
   getProgress,
   getQuestionForStation,
   getStation,
@@ -16,6 +17,11 @@ export async function POST(
   const participant = await getCurrentParticipant();
   if (!participant) {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+  }
+
+  const state = await getGameState();
+  if (state.isClosed) {
+    return NextResponse.json({ error: "game_closed" }, { status: 403 });
   }
 
   const { id } = await params;

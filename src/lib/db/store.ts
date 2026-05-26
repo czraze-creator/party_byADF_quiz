@@ -267,6 +267,67 @@ export async function resetParticipantProgress(
 // Admin aggregate
 // ---------------------------------------------------------------------
 
+// ---------------------------------------------------------------------
+// Game state (single-row table, id = 1)
+// ---------------------------------------------------------------------
+
+export type GameState = { isClosed: boolean; closedAt: string | null };
+
+export async function getGameState(): Promise<GameState> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("game_state")
+    .select("is_closed, closed_at")
+    .eq("id", 1)
+    .maybeSingle();
+  // Pokud tabulka ještě neexistuje (migrace 003 neproběhla), tiše vrať
+  // "otevřeno" — admin UI uvidí běžící hru, close/reset endpointy selžou
+  // hlasitě (a tím připomenou, že migrace chybí).
+  if (error) {
+    if (error.code === "42P01" || error.message?.includes("game_state")) {
+      return { isClosed: false, closedAt: null };
+    }
+    throw error;
+  }
+  return {
+    isClosed: data?.is_closed ?? false,
+    closedAt: data?.closed_at ?? null,
+  };
+}
+
+export async function setGameClosed(closed: boolean): Promise<GameState> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("game_state")
+    .upsert({
+      id: 1,
+      is_closed: closed,
+      closed_at: closed ? new Date().toISOString() : null,
+    })
+    .select("is_closed, closed_at")
+    .single();
+  if (error) throw error;
+  return { isClosed: data.is_closed, closedAt: data.closed_at };
+}
+
+export async function resetAllRegistrations(): Promise<void> {
+  const sb = getSupabaseAdmin();
+  // progress kvůli FK na participants smazat první, ale ON DELETE CASCADE
+  // ho stejně smaže — necháváme explicitně pro jistotu i kdyby cascade
+  // selhalo na nějaké instanci.
+  const { error: progressErr } = await sb
+    .from("progress")
+    .delete()
+    .neq("participant_id", "");
+  if (progressErr) throw progressErr;
+  const { error: partErr } = await sb
+    .from("participants")
+    .delete()
+    .neq("id", "");
+  if (partErr) throw partErr;
+  await setGameClosed(false);
+}
+
 export async function listAllParticipantsWithProgress(): Promise<
   Array<Participant & { progress: StationProgress[]; completed: boolean }>
 > {

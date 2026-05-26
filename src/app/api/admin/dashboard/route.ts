@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthed } from "@/lib/admin";
 import {
+  getGameState,
   listAllParticipantsWithProgress,
   listStations,
 } from "@/lib/db/store";
@@ -12,6 +13,7 @@ export async function GET() {
 
   const stations = await listStations();
   const participants = await listAllParticipantsWithProgress();
+  const gameState = await getGameState();
 
   const stationStats = stations.map((s) => {
     const rows = participants.flatMap((p) =>
@@ -29,6 +31,7 @@ export async function GET() {
   });
 
   return NextResponse.json({
+    gameState,
     totals: {
       participants: participants.length,
       completed: participants.filter((p) => p.completed).length,

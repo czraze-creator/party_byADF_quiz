@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
 type Dashboard = {
+  gameState: { isClosed: boolean; closedAt: string | null };
   totals: { participants: number; completed: number; stations: number };
   stationStats: {
     id: number;
@@ -33,31 +34,90 @@ export default function DashboardPage() {
   const [winner, setWinner] = useState<{ name: string; email: string } | null>(
     null,
   );
+  const [busy, setBusy] = useState<null | "close" | "open" | "reset">(null);
+
+  const load = useCallback(async () => {
+    const res = await fetch("/api/admin/dashboard", { cache: "no-store" });
+    if (res.status === 401) {
+      router.replace("/admin");
+      return null;
+    }
+    return (await res.json()) as Dashboard;
+  }, [router]);
 
   useEffect(() => {
     let cancelled = false;
-    let timer: ReturnType<typeof setInterval>;
-    async function load() {
-      const res = await fetch("/api/admin/dashboard", { cache: "no-store" });
-      if (res.status === 401) {
-        router.replace("/admin");
-        return;
-      }
-      const d = (await res.json()) as Dashboard;
-      if (!cancelled) setData(d);
+    async function tick() {
+      const d = await load();
+      if (!cancelled && d) setData(d);
     }
-    load();
-    timer = setInterval(load, 5000);
+    tick();
+    const timer = setInterval(tick, 5000);
     return () => {
       cancelled = true;
       clearInterval(timer);
     };
-  }, [router]);
+  }, [load]);
 
   function pickWinner() {
     if (!data?.eligibleForDrawing.length) return;
     const idx = Math.floor(Math.random() * data.eligibleForDrawing.length);
     setWinner(data.eligibleForDrawing[idx]);
+  }
+
+  async function toggleGame(action: "close" | "open") {
+    if (action === "close") {
+      const ok = window.confirm(
+        "Uzavřít hru? Po uzavření nikdo nový se nezaregistruje a stávající hráči už nebudou moci odpovídat. Můžeš hru znovu otevřít.",
+      );
+      if (!ok) return;
+    }
+    setBusy(action);
+    try {
+      const res = await fetch("/api/admin/game", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (!res.ok) {
+        alert("Nepodařilo se změnit stav hry.");
+        return;
+      }
+      const d = await load();
+      if (d) setData(d);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function resetAll() {
+    if (!data) return;
+    const count = data.totals.participants;
+    const ok = window.confirm(
+      `Opravdu smazat všech ${count} registrací včetně progressu? Tuto akci nelze vrátit zpět.`,
+    );
+    if (!ok) return;
+    const confirm2 = window.prompt(
+      'Pro potvrzení napiš velkými písmeny: RESET',
+    );
+    if (confirm2 !== "RESET") return;
+    setBusy("reset");
+    try {
+      const res = await fetch("/api/admin/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: "RESET" }),
+      });
+      if (!res.ok) {
+        alert("Reset selhal.");
+        return;
+      }
+      setWinner(null);
+      const d = await load();
+      if (d) setData(d);
+    } finally {
+      setBusy(null);
+    }
   }
 
   if (!data) {
@@ -68,13 +128,19 @@ export default function DashboardPage() {
     );
   }
 
+  const isClosed = data.gameState.isClosed;
+  const canDraw = isClosed && data.eligibleForDrawing.length > 0;
+
   return (
     <div className="mx-auto w-full max-w-6xl px-6 py-10">
-      <header className="mb-8 flex items-end justify-between">
+      <header className="mb-8 flex items-end justify-between gap-4">
         <div>
-          <span className="text-xs uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-            Live · automaticky se obnovuje
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+              Live · automaticky se obnovuje
+            </span>
+            <GameStateBadge isClosed={isClosed} />
+          </div>
           <h1 className="text-display mt-2 text-4xl font-medium">Přehled hry</h1>
         </div>
         <a
@@ -176,16 +242,47 @@ export default function DashboardPage() {
             účastník{data.eligibleForDrawing.length === 1 ? "" : "ů"}, kteří
             zodpověděli všechny otázky správně.
           </p>
-          <div className="mt-5">
+
+          {!isClosed && (
+            <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs text-[var(--color-text-muted)]">
+              Slosování bude dostupné po uzavření hry.
+            </div>
+          )}
+
+          <div className="mt-5 flex flex-col gap-3">
+            {!isClosed ? (
+              <Button
+                fullWidth
+                size="md"
+                onClick={() => toggleGame("close")}
+                loading={busy === "close"}
+                disabled={busy !== null}
+              >
+                Uzavřít hru
+              </Button>
+            ) : (
+              <Button
+                fullWidth
+                size="md"
+                variant="ghost"
+                onClick={() => toggleGame("open")}
+                loading={busy === "open"}
+                disabled={busy !== null}
+              >
+                Znovu otevřít hru
+              </Button>
+            )}
+
             <Button
               fullWidth
               size="md"
-              disabled={!data.eligibleForDrawing.length}
+              disabled={!canDraw || busy !== null}
               onClick={pickWinner}
             >
               Vylosovat výherce
             </Button>
           </div>
+
           {winner && (
             <motion.div
               key={winner.email}
@@ -208,7 +305,46 @@ export default function DashboardPage() {
           )}
         </Card>
       </section>
+
+      <section className="mt-12">
+        <Card className="border-[var(--color-error)]/30 p-6">
+          <h2 className="text-xs uppercase tracking-[0.22em] text-[var(--color-error)]">
+            Testování — nebezpečná zóna
+          </h2>
+          <p className="mt-3 text-sm text-[var(--color-text-muted)]">
+            Smaže všechny registrace a postup hráčů (stanoviště a otázky
+            zůstanou). Po resetu se hra znovu otevře. Používej jen při
+            testování — na produkci před akcí.
+          </p>
+          <div className="mt-5 max-w-xs">
+            <Button
+              variant="danger"
+              size="md"
+              fullWidth
+              loading={busy === "reset"}
+              disabled={busy !== null || data.totals.participants === 0}
+              onClick={resetAll}
+            >
+              Resetovat všechny registrace
+            </Button>
+          </div>
+        </Card>
+      </section>
     </div>
+  );
+}
+
+function GameStateBadge({ isClosed }: { isClosed: boolean }) {
+  return (
+    <span
+      className={
+        isClosed
+          ? "rounded-full bg-[var(--color-error)]/15 px-2.5 py-0.5 text-[10px] uppercase tracking-wider text-[var(--color-error)]"
+          : "rounded-full bg-[var(--color-success-soft)] px-2.5 py-0.5 text-[10px] uppercase tracking-wider text-[var(--color-success)]"
+      }
+    >
+      {isClosed ? "🔴 Hra uzavřena" : "🟢 Hra běží"}
+    </span>
   );
 }
 

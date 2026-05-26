@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   createParticipant,
   findParticipantByEmail,
+  getGameState,
 } from "@/lib/db/store";
 import { setSessionCookie } from "@/lib/session";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
@@ -11,6 +12,11 @@ const RATE_WINDOW_SECONDS = 60 * 60; // 1 hour
 const RATE_MAX = 3;
 
 export async function POST(req: Request) {
+  const state = await getGameState();
+  if (state.isClosed) {
+    return NextResponse.json({ error: "game_closed" }, { status: 403 });
+  }
+
   const ip = getClientIp(req);
   const limit = await checkRateLimit(
     ip,
