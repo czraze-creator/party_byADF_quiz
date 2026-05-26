@@ -31,9 +31,9 @@ type Dashboard = {
 export default function DashboardPage() {
   const router = useRouter();
   const [data, setData] = useState<Dashboard | null>(null);
-  const [winner, setWinner] = useState<{ name: string; email: string } | null>(
-    null,
-  );
+  const [drawnWinners, setDrawnWinners] = useState<
+    { id: string; name: string; email: string }[]
+  >([]);
   const [busy, setBusy] = useState<null | "close" | "open" | "reset">(null);
 
   const load = useCallback(async () => {
@@ -60,9 +60,20 @@ export default function DashboardPage() {
   }, [load]);
 
   function pickWinner() {
-    if (!data?.eligibleForDrawing.length) return;
-    const idx = Math.floor(Math.random() * data.eligibleForDrawing.length);
-    setWinner(data.eligibleForDrawing[idx]);
+    if (!data) return;
+    const already = new Set(drawnWinners.map((w) => w.id));
+    const pool = data.eligibleForDrawing.filter((p) => !already.has(p.id));
+    if (pool.length === 0) return;
+    const idx = Math.floor(Math.random() * pool.length);
+    const picked = pool[idx];
+    setDrawnWinners((prev) => [
+      { id: picked.id, name: picked.name, email: picked.email },
+      ...prev,
+    ]);
+  }
+
+  function resetDrawing() {
+    setDrawnWinners([]);
   }
 
   async function toggleGame(action: "close" | "open") {
@@ -112,7 +123,7 @@ export default function DashboardPage() {
         alert("Reset selhal.");
         return;
       }
-      setWinner(null);
+      setDrawnWinners([]);
       const d = await load();
       if (d) setData(d);
     } finally {
@@ -129,7 +140,13 @@ export default function DashboardPage() {
   }
 
   const isClosed = data.gameState.isClosed;
-  const canDraw = isClosed && data.eligibleForDrawing.length > 0;
+  const remainingToDrawn = Math.max(
+    0,
+    data.eligibleForDrawing.length - drawnWinners.length,
+  );
+  const canDraw = isClosed && remainingToDrawn > 0;
+  const lastWinner = drawnWinners[0] ?? null;
+  const previousWinners = drawnWinners.slice(1);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-6 py-10">
@@ -279,13 +296,27 @@ export default function DashboardPage() {
               disabled={!canDraw || busy !== null}
               onClick={pickWinner}
             >
-              Vylosovat výherce
+              {drawnWinners.length === 0
+                ? "Vylosovat výherce"
+                : remainingToDrawn === 0
+                  ? "Všichni už vylosováni"
+                  : `Vylosovat dalšího (zbývá ${remainingToDrawn})`}
             </Button>
+
+            {drawnWinners.length > 0 && (
+              <button
+                type="button"
+                onClick={resetDrawing}
+                className="text-xs text-[var(--color-text-muted)] underline-offset-4 hover:text-[var(--color-text)] hover:underline"
+              >
+                Začít slosování znovu (vymazat historii)
+              </button>
+            )}
           </div>
 
-          {winner && (
+          {lastWinner && (
             <motion.div
-              key={winner.email}
+              key={lastWinner.id}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{
@@ -295,13 +326,43 @@ export default function DashboardPage() {
               className="mt-5 rounded-2xl border border-[var(--color-success)]/40 bg-[var(--color-success-soft)] p-5 text-center"
             >
               <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--color-success)]">
-                Výherce
+                {drawnWinners.length === 1
+                  ? "Výherce"
+                  : `Výherce #${drawnWinners.length}`}
               </div>
-              <div className="mt-1 text-xl font-medium">{winner.name}</div>
+              <div className="mt-1 text-xl font-medium">{lastWinner.name}</div>
               <div className="text-xs text-[var(--color-text-muted)]">
-                {winner.email}
+                {lastWinner.email}
               </div>
             </motion.div>
+          )}
+
+          {previousWinners.length > 0 && (
+            <div className="mt-5">
+              <div className="mb-2 text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                Dříve vylosovaní
+              </div>
+              <ul className="divide-y divide-white/5">
+                {previousWinners.map((w, i) => (
+                  <li
+                    key={w.id}
+                    className="flex items-center justify-between py-2 text-sm"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-xs text-[var(--color-text-faint)]">
+                        #{previousWinners.length - i}
+                      </span>
+                      <div>
+                        <div className="font-medium">{w.name}</div>
+                        <div className="text-xs text-[var(--color-text-faint)]">
+                          {w.email}
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </Card>
       </section>
