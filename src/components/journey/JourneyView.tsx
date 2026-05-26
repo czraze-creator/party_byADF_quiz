@@ -40,7 +40,6 @@ export function JourneyView() {
         if (cancelled) return;
         setStations(sData.stations);
         setMe(mData);
-        if (mData.completed) router.replace("/play/done");
       } catch {
         if (!cancelled) setError("Nepodařilo se načíst stav hry.");
       }

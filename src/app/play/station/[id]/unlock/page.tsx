@@ -285,7 +285,7 @@ function UnlockInner({ stationId }: { stationId: number }) {
           className="mt-10"
         >
           <CodeInput
-            length={6}
+            length={station.codeLength}
             value={code}
             onChange={(v) => {
               setError(null);
@@ -346,7 +346,7 @@ function UnlockInner({ stationId }: { stationId: number }) {
           <Button
             fullWidth
             loading={submitting}
-            disabled={code.length < 2}
+            disabled={code.length < station.codeLength}
             onClick={() => submit(code)}
           >
             Odemknout

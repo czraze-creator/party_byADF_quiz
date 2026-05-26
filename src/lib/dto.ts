@@ -12,6 +12,7 @@ export function toPublicStation(s: Station): PublicStation {
     emoji: s.emoji,
     hint: s.hint,
     orderIndex: s.orderIndex,
+    codeLength: s.code.length,
   };
 }
 

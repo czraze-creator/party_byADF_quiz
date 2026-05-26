@@ -50,6 +50,7 @@ export type PublicStation = {
   emoji: string;
   hint: string;
   orderIndex: number;
+  codeLength: number;
 };
 
 export type PublicAnswer = {
