@@ -15,7 +15,9 @@ export async function GET() {
   const progress: PublicProgress[] = stations.map((s) => {
     const row = rows.find((r) => r.stationId === s.id);
     let state: PublicProgress["state"] = "locked";
-    if (row?.answeredAt) state = "completed";
+    // "completed" jen když host trefil správně. Špatné pokusy (isCorrect=false)
+    // necháváme ve stavu "unlocked" — může zkusit znovu.
+    if (row?.answeredAt && row?.isCorrect === true) state = "completed";
     else if (row?.unlockedAt) state = "unlocked";
     return {
       stationId: s.id as StationId,

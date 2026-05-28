@@ -44,7 +44,9 @@ export async function POST(req: Request) {
   if (!existing?.unlockedAt) {
     return NextResponse.json({ error: "not_unlocked" }, { status: 403 });
   }
-  if (existing.answeredAt) {
+  // Pokud už trefil správnou odpověď, nedovol další pokusy. Špatné pokusy
+  // ale ano — host smí zkoušet dál, dokud neuhodne.
+  if (existing.isCorrect === true) {
     return NextResponse.json({ error: "already_answered" }, { status: 409 });
   }
 
@@ -52,15 +54,13 @@ export async function POST(req: Request) {
     participantId: participant.id,
     stationId: question.stationId,
     unlockedAt: existing.unlockedAt,
-    answeredAt: new Date().toISOString(),
+    // answered_at se nastaví jen při finálně správné odpovědi
+    answeredAt: answer.isCorrect ? new Date().toISOString() : null,
     selectedAnswerId: answer.id,
     isCorrect: answer.isCorrect,
   });
 
-  const correctAnswerId = question.answers.find((a) => a.isCorrect)?.id ?? null;
-
-  return NextResponse.json({
-    isCorrect: answer.isCorrect,
-    correctAnswerId: answer.isCorrect ? null : correctAnswerId,
-  });
+  // Správnou odpověď klientovi NEvyzrazujeme když host zvolil špatně —
+  // jinak by si ji odečetl z odpovědi a klikl rovnou.
+  return NextResponse.json({ isCorrect: answer.isCorrect });
 }
