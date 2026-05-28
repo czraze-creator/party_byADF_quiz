@@ -6,6 +6,7 @@ import type {
   Station,
   StationId,
   StationProgress,
+  Wish,
 } from "../types";
 import { getSupabaseAdmin } from "../supabase/server";
 
@@ -268,6 +269,91 @@ export async function resetParticipantProgress(
 // ---------------------------------------------------------------------
 
 // ---------------------------------------------------------------------
+// Wishes (1 per participant — bonus drawing pool)
+// ---------------------------------------------------------------------
+
+type WishRow = {
+  participant_id: string;
+  text: string;
+  created_at: string;
+};
+
+function mapWish(r: WishRow): Wish {
+  return {
+    participantId: r.participant_id,
+    text: r.text,
+    createdAt: r.created_at,
+  };
+}
+
+export async function getWishByParticipant(
+  participantId: string,
+): Promise<Wish | null> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("wishes")
+    .select("*")
+    .eq("participant_id", participantId)
+    .maybeSingle();
+  if (error) {
+    // Fail-soft, kdyby migrace 004 ještě neproběhla.
+    if (error.code === "42P01" || error.message?.includes("wishes")) {
+      return null;
+    }
+    throw error;
+  }
+  return data ? mapWish(data) : null;
+}
+
+export async function upsertWish(input: {
+  participantId: string;
+  text: string;
+}): Promise<Wish> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("wishes")
+    .upsert(
+      {
+        participant_id: input.participantId,
+        text: input.text,
+        created_at: new Date().toISOString(),
+      },
+      { onConflict: "participant_id" },
+    )
+    .select("*")
+    .single();
+  if (error) throw error;
+  return mapWish(data);
+}
+
+export async function listWishesWithParticipant(): Promise<
+  Array<Wish & { participantName: string; participantEmail: string }>
+> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("wishes")
+    .select("participant_id, text, created_at, participants(name, email)")
+    .order("created_at", { ascending: false });
+  if (error) {
+    if (error.code === "42P01" || error.message?.includes("wishes")) {
+      return [];
+    }
+    throw error;
+  }
+  type Joined = WishRow & {
+    participants: { name: string; email: string } | { name: string; email: string }[] | null;
+  };
+  return ((data ?? []) as unknown as Joined[]).map((r) => {
+    const p = Array.isArray(r.participants) ? r.participants[0] : r.participants;
+    return {
+      ...mapWish(r),
+      participantName: p?.name ?? "(neznámý)",
+      participantEmail: p?.email ?? "",
+    };
+  });
+}
+
+// ---------------------------------------------------------------------
 // Game state (single-row table, id = 1)
 // ---------------------------------------------------------------------
 
@@ -312,14 +398,19 @@ export async function setGameClosed(closed: boolean): Promise<GameState> {
 
 export async function resetAllRegistrations(): Promise<void> {
   const sb = getSupabaseAdmin();
-  // progress kvůli FK na participants smazat první, ale ON DELETE CASCADE
-  // ho stejně smaže — necháváme explicitně pro jistotu i kdyby cascade
-  // selhalo na nějaké instanci.
+  // progress + wishes kvůli FK na participants smazat první. ON DELETE
+  // CASCADE by je vzal i tak, ale explicitně je to čitelnější a odolnější.
   const { error: progressErr } = await sb
     .from("progress")
     .delete()
     .neq("participant_id", "");
   if (progressErr) throw progressErr;
+  // wishes tabulka nemusí existovat (migrace 004) — tichý fallback.
+  const { error: wishesErr } = await sb
+    .from("wishes")
+    .delete()
+    .neq("participant_id", "");
+  if (wishesErr && wishesErr.code !== "42P01") throw wishesErr;
   const { error: partErr } = await sb
     .from("participants")
     .delete()

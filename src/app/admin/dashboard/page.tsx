@@ -26,6 +26,13 @@ type Dashboard = {
     createdAt: string;
   }[];
   eligibleForDrawing: { id: string; name: string; email: string; phone: string | null }[];
+  wishes: {
+    participantId: string;
+    name: string;
+    email: string;
+    text: string;
+    createdAt: string;
+  }[];
 };
 
 export default function DashboardPage() {
@@ -33,6 +40,9 @@ export default function DashboardPage() {
   const [data, setData] = useState<Dashboard | null>(null);
   const [drawnWinners, setDrawnWinners] = useState<
     { id: string; name: string; email: string }[]
+  >([]);
+  const [drawnWishWinners, setDrawnWishWinners] = useState<
+    { id: string; name: string; email: string; text: string }[]
   >([]);
   const [busy, setBusy] = useState<null | "close" | "open" | "reset">(null);
 
@@ -74,6 +84,28 @@ export default function DashboardPage() {
 
   function resetDrawing() {
     setDrawnWinners([]);
+  }
+
+  function pickWishWinner() {
+    if (!data) return;
+    const already = new Set(drawnWishWinners.map((w) => w.id));
+    const pool = data.wishes.filter((w) => !already.has(w.participantId));
+    if (pool.length === 0) return;
+    const idx = Math.floor(Math.random() * pool.length);
+    const picked = pool[idx];
+    setDrawnWishWinners((prev) => [
+      {
+        id: picked.participantId,
+        name: picked.name,
+        email: picked.email,
+        text: picked.text,
+      },
+      ...prev,
+    ]);
+  }
+
+  function resetWishDrawing() {
+    setDrawnWishWinners([]);
   }
 
   async function toggleGame(action: "close" | "open") {
@@ -124,6 +156,7 @@ export default function DashboardPage() {
         return;
       }
       setDrawnWinners([]);
+      setDrawnWishWinners([]);
       const d = await load();
       if (d) setData(d);
     } finally {
@@ -147,6 +180,14 @@ export default function DashboardPage() {
   const canDraw = isClosed && remainingToDrawn > 0;
   const lastWinner = drawnWinners[0] ?? null;
   const previousWinners = drawnWinners.slice(1);
+
+  const remainingWishToDraw = Math.max(
+    0,
+    data.wishes.length - drawnWishWinners.length,
+  );
+  const canDrawWish = isClosed && remainingWishToDraw > 0;
+  const lastWishWinner = drawnWishWinners[0] ?? null;
+  const previousWishWinners = drawnWishWinners.slice(1);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-6 py-10">
@@ -356,6 +397,146 @@ export default function DashboardPage() {
                         <div className="font-medium">{w.name}</div>
                         <div className="text-xs text-[var(--color-text-faint)]">
                           {w.email}
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </Card>
+      </section>
+
+      <section className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card className="p-6">
+          <h2 className="text-xs uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+            Anti-přání ADF (bonusové slosování)
+          </h2>
+          <p className="mt-3 text-sm text-[var(--color-text-muted)]">
+            <span className="font-mono text-[var(--color-text)]">
+              {data.wishes.length}
+            </span>{" "}
+            {data.wishes.length === 1 ? "host poslal" : "hostů poslalo"} anti-přání ADF k 10. výročí.
+          </p>
+
+          {data.wishes.length === 0 ? (
+            <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs text-[var(--color-text-muted)]">
+              Zatím žádné odpovědi. Po odeslání hosty se zobrazí seznam.
+            </div>
+          ) : (
+            <ul className="mt-4 max-h-72 space-y-3 overflow-y-auto pr-1">
+              {data.wishes.map((w) => (
+                <li
+                  key={w.participantId}
+                  className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-3"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium">
+                        {w.name}
+                      </div>
+                      <div className="truncate text-[10px] text-[var(--color-text-faint)]">
+                        {w.email}
+                      </div>
+                    </div>
+                    <div className="font-mono text-[10px] text-[var(--color-text-faint)]">
+                      {new Date(w.createdAt).toLocaleTimeString("cs-CZ", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
+                  </div>
+                  <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--color-text)]">
+                    {w.text}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <Card className="p-6">
+          <h2 className="text-xs uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+            Slosování z anti-přání
+          </h2>
+          <p className="mt-3 text-sm text-[var(--color-text-muted)]">
+            Bonusová cena — losuje se mezi autory anti-přání. Nezávislé na
+            hlavním slosování o správné odpovědi.
+          </p>
+
+          {!isClosed && (
+            <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs text-[var(--color-text-muted)]">
+              Slosování bude dostupné po uzavření hry.
+            </div>
+          )}
+
+          <div className="mt-5">
+            <Button
+              fullWidth
+              size="md"
+              disabled={!canDrawWish || busy !== null}
+              onClick={pickWishWinner}
+            >
+              {drawnWishWinners.length === 0
+                ? "Vylosovat z anti-přání"
+                : remainingWishToDraw === 0
+                  ? "Všichni už vylosováni"
+                  : `Vylosovat dalšího (zbývá ${remainingWishToDraw})`}
+            </Button>
+
+            {drawnWishWinners.length > 0 && (
+              <button
+                type="button"
+                onClick={resetWishDrawing}
+                className="mt-3 text-xs text-[var(--color-text-muted)] underline-offset-4 hover:text-[var(--color-text)] hover:underline"
+              >
+                Začít slosování znovu (vymazat historii)
+              </button>
+            )}
+          </div>
+
+          {lastWishWinner && (
+            <motion.div
+              key={lastWishWinner.id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
+              className="mt-5 rounded-2xl border border-[var(--color-accent)]/40 bg-[var(--color-accent-soft)] p-5"
+            >
+              <div className="text-center text-[10px] uppercase tracking-[0.22em] text-[var(--color-accent)]">
+                {drawnWishWinners.length === 1
+                  ? "Výherce z anti-přání"
+                  : `Výherce #${drawnWishWinners.length}`}
+              </div>
+              <div className="mt-1 text-center text-xl font-medium">
+                {lastWishWinner.name}
+              </div>
+              <div className="text-center text-xs text-[var(--color-text-muted)]">
+                {lastWishWinner.email}
+              </div>
+              <blockquote className="mt-4 whitespace-pre-wrap border-l-2 border-[var(--color-accent)]/40 pl-3 text-sm italic text-[var(--color-text)]">
+                „{lastWishWinner.text}“
+              </blockquote>
+            </motion.div>
+          )}
+
+          {previousWishWinners.length > 0 && (
+            <div className="mt-5">
+              <div className="mb-2 text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                Dříve vylosovaní
+              </div>
+              <ul className="divide-y divide-white/5">
+                {previousWishWinners.map((w, i) => (
+                  <li key={w.id} className="py-2 text-sm">
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-xs text-[var(--color-text-faint)]">
+                        #{previousWishWinners.length - i}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium">{w.name}</div>
+                        <div className="truncate text-xs text-[var(--color-text-faint)]">
+                          {w.text}
                         </div>
                       </div>
                     </div>

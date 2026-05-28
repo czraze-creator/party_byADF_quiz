@@ -33,6 +33,12 @@ export type Participant = {
   createdAt: string;
 };
 
+export type Wish = {
+  participantId: string;
+  text: string;
+  createdAt: string;
+};
+
 export type StationProgress = {
   participantId: string;
   stationId: StationId;

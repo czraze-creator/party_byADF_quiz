@@ -4,6 +4,7 @@ import {
   getGameState,
   listAllParticipantsWithProgress,
   listStations,
+  listWishesWithParticipant,
 } from "@/lib/db/store";
 
 export async function GET() {
@@ -14,6 +15,7 @@ export async function GET() {
   const stations = await listStations();
   const participants = await listAllParticipantsWithProgress();
   const gameState = await getGameState();
+  const wishes = await listWishesWithParticipant();
 
   const stationStats = stations.map((s) => {
     const rows = participants.flatMap((p) =>
@@ -52,5 +54,12 @@ export async function GET() {
     eligibleForDrawing: participants
       .filter((p) => p.completed)
       .map((p) => ({ id: p.id, name: p.name, email: p.email, phone: p.phone })),
+    wishes: wishes.map((w) => ({
+      participantId: w.participantId,
+      name: w.participantName,
+      email: w.participantEmail,
+      text: w.text,
+      createdAt: w.createdAt,
+    })),
   });
 }

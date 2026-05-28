@@ -14,20 +14,31 @@ type Me = {
   progress: { stationId: number; isCorrect: boolean | null }[];
 };
 
+type Wish = { participantId: string; text: string; createdAt: string };
+
+const MAX_WISH = 500;
+
 export default function DonePage() {
   const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
   const [eligible, setEligible] = useState(false);
+  const [wish, setWish] = useState<Wish | null>(null);
+  const [wishDraft, setWishDraft] = useState("");
+  const [wishSubmitting, setWishSubmitting] = useState(false);
+  const [wishError, setWishError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const res = await fetch("/api/me");
-      if (res.status === 401) {
+      const [meRes, wishRes] = await Promise.all([
+        fetch("/api/me"),
+        fetch("/api/wishes", { cache: "no-store" }),
+      ]);
+      if (meRes.status === 401) {
         router.replace("/play/identita");
         return;
       }
-      const data = (await res.json()) as Me;
+      const data = (await meRes.json()) as Me;
       if (cancelled) return;
       setMe(data);
       const allCorrect = data.progress.every((p) => p.isCorrect === true);
@@ -36,12 +47,57 @@ export default function DonePage() {
         setTimeout(() => fireConfetti(), 400);
         setTimeout(() => fireConfetti(), 1400);
       }
+      if (wishRes.ok) {
+        const wd = (await wishRes.json()) as { wish: Wish | null };
+        if (!cancelled && wd.wish) {
+          setWish(wd.wish);
+          setWishDraft(wd.wish.text);
+        }
+      }
     }
     load();
     return () => {
       cancelled = true;
     };
   }, [router]);
+
+  async function submitWish() {
+    const trimmed = wishDraft.trim();
+    if (trimmed.length < 1) {
+      setWishError("Napiš aspoň krátkou větu.");
+      return;
+    }
+    if (trimmed.length > MAX_WISH) {
+      setWishError(`Maximálně ${MAX_WISH} znaků.`);
+      return;
+    }
+    setWishError(null);
+    setWishSubmitting(true);
+    try {
+      const res = await fetch("/api/wishes", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ text: trimmed }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (data.error === "game_closed") {
+          setWishError("Hra už byla uzavřena, přání už nepřijímáme.");
+        } else if (data.error === "invalid_length") {
+          setWishError("Text je moc dlouhý nebo prázdný.");
+        } else {
+          setWishError("Něco se nepovedlo, zkus to znovu.");
+        }
+        return;
+      }
+      setWish(data.wish);
+      setTimeout(() => fireConfetti(), 200);
+    } catch {
+      setWishError("Něco se nepovedlo, zkus to znovu.");
+    } finally {
+      setWishSubmitting(false);
+    }
+  }
 
   async function share() {
     const url = typeof window !== "undefined" ? window.location.origin : "";
@@ -138,6 +194,79 @@ export default function DonePage() {
           >
             Zpět na přehled
           </Button>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.7 }}
+          className="mt-12 w-full"
+        >
+          <div className="glass rounded-3xl p-6 text-left">
+            <span className="text-[10px] uppercase tracking-[0.22em] text-[var(--color-accent)]">
+              Bonus · slosování o speciální cenu
+            </span>
+            <h2 className="text-display mt-2 text-2xl font-medium leading-tight">
+              Co byste ADF do dalších 10 let NEpřáli?
+            </h2>
+            <p className="mt-2 text-sm text-[var(--color-text-muted)]">
+              Hoď nám sem nějaké anti-přání — co rozhodně nedoporučujeme.
+              Mezi všemi odpověďmi vylosujeme bonusovou cenu.
+            </p>
+
+            {wish ? (
+              <div className="mt-5">
+                <div className="rounded-2xl border border-[var(--color-success)]/30 bg-[var(--color-success-soft)] p-4">
+                  <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--color-success)]">
+                    Tvoje anti-přání · v slosování
+                  </div>
+                  <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--color-text)]">
+                    {wish.text}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWish(null);
+                    setWishError(null);
+                  }}
+                  className="mt-3 text-xs text-[var(--color-text-muted)] underline-offset-4 hover:text-[var(--color-text)] hover:underline"
+                >
+                  Upravit
+                </button>
+              </div>
+            ) : (
+              <div className="mt-5">
+                <textarea
+                  value={wishDraft}
+                  onChange={(e) => {
+                    setWishError(null);
+                    setWishDraft(e.target.value.slice(0, MAX_WISH));
+                  }}
+                  placeholder="Třeba: žádný open space bez kávovaru…"
+                  rows={4}
+                  className="w-full resize-none rounded-2xl border border-white/[0.1] bg-white/[0.03] p-4 text-sm text-[var(--color-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+                />
+                <div className="mt-1 flex items-center justify-between text-[10px] text-[var(--color-text-faint)]">
+                  <span>{wishError}</span>
+                  <span className="font-mono">
+                    {wishDraft.length}/{MAX_WISH}
+                  </span>
+                </div>
+                <div className="mt-3">
+                  <Button
+                    size="md"
+                    fullWidth
+                    loading={wishSubmitting}
+                    disabled={wishDraft.trim().length < 1 || wishSubmitting}
+                    onClick={submitWish}
+                  >
+                    Odeslat do bonusového slosování
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
         </motion.div>
       </div>
     </div>
