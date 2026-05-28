@@ -166,6 +166,8 @@ export default function QuestionPage({ params }: Props) {
         <div className="mt-10 flex flex-col gap-3">
           {question.answers.map((a, idx) => {
             const wasWrong = wrongTried.has(a.id);
+            const isSubmitting =
+              status.kind === "submitting" && status.answerId === a.id;
             const isSelectedNow =
               (status.kind === "submitting" ||
                 status.kind === "wrong" ||
@@ -181,34 +183,48 @@ export default function QuestionPage({ params }: Props) {
               wasWrong;
 
             return (
-              <motion.button
+              // Entry stagger is on the wrapper div — runs once on mount.
+              // The inner button animates state changes WITHOUT delay so
+              // they react instantly to clicks.
+              <motion.div
                 key={a.id}
-                disabled={disabled}
-                onClick={() => pickAnswer(a.id)}
                 initial={{ opacity: 0, y: 14 }}
-                animate={{
-                  opacity: dimmed ? 0.35 : wasWrong && !isSelectedNow ? 0.55 : 1,
-                  y: 0,
-                  scale:
-                    isWrongShown && isSelectedNow ? [1, 0.98, 1.01, 0.99, 1] : 1,
-                }}
-                transition={{
-                  duration: isWrongShown && isSelectedNow ? 0.45 : 0.4,
-                  delay: idx * 0.06,
-                }}
-                whileHover={!disabled ? { scale: 1.01 } : undefined}
-                whileTap={!disabled ? { scale: 0.98 } : undefined}
-                className={cn(
-                  "group relative flex h-20 items-center justify-between rounded-2xl border px-6 text-left transition",
-                  showAsCorrect &&
-                    "border-[var(--color-success)]/60 bg-[var(--color-success-soft)] text-[var(--color-success)] shadow-[0_0_30px_-8px_var(--color-success-glow)]",
-                  showAsWrong &&
-                    "border-[var(--color-error)]/60 bg-[var(--color-error-soft)] text-[var(--color-error)]",
-                  !showAsCorrect &&
-                    !showAsWrong &&
-                    "glass text-[var(--color-text)]",
-                )}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: idx * 0.05 }}
               >
+                <motion.button
+                  disabled={disabled}
+                  onClick={() => pickAnswer(a.id)}
+                  animate={{
+                    opacity: dimmed
+                      ? 0.35
+                      : wasWrong && !isSelectedNow
+                        ? 0.55
+                        : 1,
+                    scale:
+                      isWrongShown && isSelectedNow
+                        ? [1, 0.97, 1.01, 0.99, 1]
+                        : 1,
+                  }}
+                  transition={{
+                    duration: isWrongShown && isSelectedNow ? 0.4 : 0.15,
+                  }}
+                  whileHover={!disabled ? { scale: 1.01 } : undefined}
+                  whileTap={!disabled ? { scale: 0.97 } : undefined}
+                  className={cn(
+                    "group relative flex h-20 w-full items-center justify-between rounded-2xl border px-6 text-left transition-colors duration-150",
+                    showAsCorrect &&
+                      "border-[var(--color-success)]/60 bg-[var(--color-success-soft)] text-[var(--color-success)] shadow-[0_0_30px_-8px_var(--color-success-glow)]",
+                    showAsWrong &&
+                      "border-[var(--color-error)]/60 bg-[var(--color-error-soft)] text-[var(--color-error)]",
+                    isSubmitting &&
+                      "border-[var(--color-accent)]/60 bg-[var(--color-accent-soft)] text-[var(--color-text)]",
+                    !showAsCorrect &&
+                      !showAsWrong &&
+                      !isSubmitting &&
+                      "glass text-[var(--color-text)]",
+                  )}
+                >
                 <span
                   className={cn(
                     "absolute -left-1.5 top-1/2 hidden -translate-y-1/2 font-mono text-xs text-[var(--color-text-faint)] sm:block",
@@ -220,6 +236,16 @@ export default function QuestionPage({ params }: Props) {
                   {a.text}
                 </span>
                 <AnimatePresence>
+                  {isSubmitting && (
+                    <motion.span
+                      key="spin"
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0, opacity: 0 }}
+                      transition={{ duration: 0.12 }}
+                      className="ml-3 inline-block h-5 w-5 animate-spin rounded-full border-2 border-[var(--color-accent)] border-t-transparent"
+                    />
+                  )}
                   {showAsCorrect && (
                     <motion.span
                       key="ok"
@@ -269,7 +295,8 @@ export default function QuestionPage({ params }: Props) {
                     </motion.span>
                   )}
                 </AnimatePresence>
-              </motion.button>
+                </motion.button>
+              </motion.div>
             );
           })}
         </div>
