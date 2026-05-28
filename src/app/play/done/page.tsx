@@ -247,9 +247,11 @@ export default function DonePage() {
                   rows={4}
                   className="w-full resize-none rounded-2xl border border-white/[0.1] bg-white/[0.03] p-4 text-sm text-[var(--color-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
                 />
-                <div className="mt-1 flex items-center justify-between text-[10px] text-[var(--color-text-faint)]">
-                  <span>{wishError}</span>
-                  <span className="font-mono">
+                <div className="mt-1 flex items-center justify-between gap-3 text-[10px]">
+                  <span className="text-[var(--color-error)]">
+                    {wishError}
+                  </span>
+                  <span className="font-mono text-[var(--color-text-faint)]">
                     {wishDraft.length}/{MAX_WISH}
                   </span>
                 </div>
